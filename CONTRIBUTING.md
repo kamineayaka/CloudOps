@@ -6,15 +6,15 @@ Thanks for your interest in contributing! This guide covers the basics.
 
 Requirements:
 - JDK 21+
-- Node.js 20+ and npm
+- Node.js 22+ and npm
 - Docker and Docker Compose
 - (Optional) Maven 3.9+ — the project includes a Maven Wrapper
 
 ### Clone and bootstrap
 
 ```bash
-git clone https://github.com/<your-org>/cloudops-ai-platform.git
-cd cloudops-ai-platform
+git clone https://github.com/kamineayaka/CloudOps.git
+cd CloudOps
 
 # Start dependencies (PostgreSQL + Redis + MinIO)
 docker compose -f deploy/compose/compose.yaml up -d postgres redis minio

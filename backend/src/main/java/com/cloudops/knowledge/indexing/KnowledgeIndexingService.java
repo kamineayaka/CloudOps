@@ -8,6 +8,7 @@ import com.cloudops.knowledge.repository.ArchitectureSnapshotRepository;
 import com.cloudops.knowledge.repository.KbChunkRepository;
 import com.cloudops.knowledge.repository.WorkLogRepository;
 import com.cloudops.knowledge.retrieval.KbChunkVectorRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import java.util.Map;
@@ -142,7 +143,7 @@ public class KnowledgeIndexingService {
             KnowledgeSourceType sourceType,
             Long sourceId,
             String text,
-            Map<String, Object> metadata) throws Exception {
+            Map<String, Object> metadata) {
         if (!ragProperties.enabled()) {
             return 0;
         }
@@ -153,7 +154,12 @@ public class KnowledgeIndexingService {
         }
 
         EmbeddingProvider provider = embeddingProviderResolver.active();
-        String metadataJson = objectMapper.writeValueAsString(metadata);
+        String metadataJson;
+        try {
+            metadataJson = objectMapper.writeValueAsString(metadata);
+        } catch (JsonProcessingException ex) {
+            throw new EmbeddingException("Failed to serialize chunk metadata", ex);
+        }
         int indexed = 0;
 
         for (int offset = 0; offset < chunks.size(); offset += EMBED_BATCH_SIZE) {

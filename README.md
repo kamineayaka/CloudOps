@@ -1,6 +1,6 @@
 # CloudOps AI Platform
 
-[![CI](https://github.com/your-org/cloudops-ai-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/cloudops-ai-platform/actions/workflows/ci.yml)
+[![CI](https://github.com/kamineayaka/CloudOps/actions/workflows/ci.yml/badge.svg)](https://github.com/kamineayaka/CloudOps/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **CloudOps AI Platform** is a B/S architecture cloud-native intelligent operations control plane. It provides a unified web interface for managing Linux server clusters, with integrated AI-assisted operations, Web SSH terminal, MCP tool gateway, knowledge base RAG, RBAC-tiered approval workflow, and tamper-evident audit logging.
@@ -32,8 +32,8 @@ Designed for deployment on any Linux server — from a single VPS to a productio
 ### Deploy
 
 ```bash
-git clone https://github.com/your-org/cloudops-ai-platform.git
-cd cloudops-ai-platform
+git clone https://github.com/kamineayaka/CloudOps.git
+cd CloudOps
 
 # Configure secrets
 cp deploy/compose/.env.example deploy/compose/.env

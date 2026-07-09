@@ -13,10 +13,10 @@ desktop.ini
 # Java / Maven
 target/
 *.class
-*.jar
 *.war
-.mvn/wrapper/maven-wrapper.jar
-!.mvn/wrapper/maven-wrapper.jar
+# Ignore JAR artifacts except the Maven Wrapper bootstrap
+*.jar
+!backend/.mvn/wrapper/maven-wrapper.jar
 
 # Node / Vue
 node_modules/
