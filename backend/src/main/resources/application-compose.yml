@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:cloudops}
+    username: ${POSTGRES_USER:cloudops}
+    password: ${POSTGRES_PASSWORD:cloudops}
+  data:
+    redis:
+      host: ${REDIS_HOST:redis}
+      port: ${REDIS_PORT:6379}
+
+cloudops:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost}
