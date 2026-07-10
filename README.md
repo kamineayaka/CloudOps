@@ -1,11 +1,13 @@
 # CloudOps AI Platform
 
+[中文文档](README.zh-CN.md) | English
+
 [![CI](https://github.com/kamineayaka/CloudOps/actions/workflows/ci.yml/badge.svg)](https://github.com/kamineayaka/CloudOps/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**CloudOps AI Platform** is a B/S architecture cloud-native intelligent operations control plane. It provides a unified web interface for managing Linux server clusters, with integrated AI-assisted operations, Web SSH terminal, MCP tool gateway, knowledge base RAG, RBAC-tiered approval workflow, and tamper-evident audit logging.
+**CloudOps AI Platform** is a B/S cloud-native intelligent operations control plane for Linux server fleets. It provides a unified web interface with AI-assisted operations, Web SSH terminal, MCP tool gateway, knowledge-base RAG, RBAC-tiered approval workflow, and tamper-evident audit logging.
 
-Designed for deployment on any Linux server — from a single VPS to a production cluster.
+Designed for deployment on any Linux server — from a single VPS to a production cluster — and for other developers to self-host and extend.
 
 ## Features
 
@@ -28,6 +30,7 @@ Designed for deployment on any Linux server — from a single VPS to a productio
 - Docker 24+ and Docker Compose v2
 - 2 CPU cores, 4 GB RAM minimum (8 GB recommended with observability stack)
 - An OpenAI-compatible API key (or a local Ollama instance)
+- Node.js 22+ for frontend development
 
 ### Deploy
 
@@ -53,6 +56,8 @@ Open **http://your-server-ip** and log in with:
 
 **Change the default password immediately after first login.**
 
+After the first deploy, run `POST /api/knowledge/reindex` as admin to initialize the RAG vector index.
+
 ## Development
 
 ```bash
@@ -62,7 +67,7 @@ docker compose -f deploy/compose/compose.yaml up -d postgres redis minio
 # Backend (port 8080)
 cd backend && ./mvnw spring-boot:run
 
-# Frontend (port 5173)
+# Frontend (port 5173, requires Node.js 22+)
 cd frontend && npm install && npm run dev
 ```
 
@@ -84,12 +89,34 @@ CloudOps/
 
 | Method | Use Case | Guide |
 |---|---|---|
-| Docker Compose | Single server / MVP | [docs/deployment.md](docs/deployment.md) |
-| Kubernetes Helm | Production HA | [deploy/helm/](deploy/helm/) |
+| Docker Compose | Single server / MVP / small production | [docs/deployment.md](docs/deployment.md) |
+| Kubernetes Helm | Production HA (chart scaffold) | [deploy/helm/](deploy/helm/) |
+
+## Tech Stack
+
+| Layer | Choices |
+|---|---|
+| Backend | Java 21, Spring Boot 3, Flyway, PostgreSQL + pgvector, Redis |
+| Frontend | Vue 3, Naive UI, Pinia, vue-i18n |
+| AI | OpenAI-compatible API / Ollama, MCP tool gateway, pgvector RAG |
+| Deploy | Docker Compose, Nginx, Prometheus / Grafana / Loki |
+
+See [docs/architecture.md](docs/architecture.md) for more details.
 
 ## Security
 
 See [SECURITY.md](SECURITY.md) for the vulnerability reporting process and production hardening checklist.
+
+Before going to production:
+
+- Rotate `JWT_SECRET`, `CREDENTIALS_MASTER_KEY`, and other default secrets
+- Change the default admin password
+- Expose only ports 80/443 and enable TLS
+- Restrict access to `/actuator/prometheus` and other monitoring endpoints as needed
+
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
