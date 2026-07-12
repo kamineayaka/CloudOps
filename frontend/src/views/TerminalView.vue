@@ -2,29 +2,38 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NSelect, NSpace, NTag } from 'naive-ui'
+import { NButton, NCard, NSelect, NSpace, NTag, useMessage } from 'naive-ui'
 import { Terminal } from '@xterm/xterm'
 import { FitAddon } from '@xterm/addon-fit'
 import { listAssets, type Asset } from '@/api/assets'
+import { listSshPool, warmSshPool, type SshPoolEntry } from '@/api/sshPool'
 import PageHeader from '@/components/PageHeader.vue'
 import { useTheme } from '@/composables/useTheme'
 import '@xterm/xterm/css/xterm.css'
 
 const { t } = useI18n()
 const route = useRoute()
+const message = useMessage()
 const { isDark } = useTheme()
 
 type ConnStatus = 'disconnected' | 'connected' | 'error'
 
 const assets = ref<Asset[]>([])
+const poolEntries = ref<SshPoolEntry[]>([])
 const selectedAssetId = ref<number | null>(null)
+const connecting = ref(false)
 const terminalRef = ref<HTMLDivElement | null>(null)
 const connStatus = ref<ConnStatus>('disconnected')
 let term: Terminal | null = null
 let fitAddon: FitAddon | null = null
 let ws: WebSocket | null = null
+let resizeObserver: ResizeObserver | null = null
 
 const assetOptions = ref<{ label: string; value: number }[]>([])
+
+function isPooled(assetId: number) {
+  return poolEntries.value.some((e) => e.assetId === assetId && e.alive)
+}
 
 const statusLabel = computed(() => {
   if (connStatus.value === 'connected') return t('terminal.statusConnected')
@@ -56,6 +65,13 @@ async function loadAssets() {
   }
 }
 
+async function refreshPool() {
+  const res = await listSshPool()
+  if (res.success && res.data) {
+    poolEntries.value = res.data
+  }
+}
+
 function initTerminal() {
   if (!terminalRef.value) return
   term = new Terminal({ cursorBlink: true, fontSize: 14, theme: terminalTheme(), fontFamily: 'ui-monospace, monospace' })
@@ -64,33 +80,57 @@ function initTerminal() {
   term.open(terminalRef.value)
   fitAddon.fit()
   term.writeln(t('terminal.hintSelect'))
+
+  resizeObserver = new ResizeObserver(() => {
+    fitAddon?.fit()
+    sendResize()
+  })
+  resizeObserver.observe(terminalRef.value)
 }
 
-function connect() {
-  if (!selectedAssetId.value || !term) return
-  disconnect()
-  const token = localStorage.getItem('accessToken')
-  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
-  const host = window.location.host
-  const url = `${protocol}://${host}/ws/terminal?token=${token}&assetId=${selectedAssetId.value}`
-  ws = new WebSocket(url)
-  ws.onopen = () => {
-    connStatus.value = 'connected'
-    term?.writeln(`\r\n[CloudOps] ${t('terminal.statusConnected')}.\r\n`)
-  }
-  ws.onmessage = (e) => term?.write(e.data)
-  ws.onclose = () => {
-    connStatus.value = 'disconnected'
-    term?.writeln(`\r\n[CloudOps] ${t('terminal.statusDisconnected')}.\r\n`)
-  }
-  ws.onerror = () => {
-    connStatus.value = 'error'
-    term?.writeln(`\r\n[CloudOps] ${t('terminal.statusError')}.\r\n`)
-  }
+function sendResize() {
+  if (!ws || ws.readyState !== WebSocket.OPEN || !term) return
+  ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }))
+}
 
-  term.onData((data) => {
-    if (ws?.readyState === WebSocket.OPEN) ws.send(data)
-  })
+async function connect() {
+  if (!selectedAssetId.value || !term) return
+  connecting.value = true
+  try {
+    await warmSshPool(selectedAssetId.value)
+    await refreshPool()
+    disconnect()
+    const token = localStorage.getItem('accessToken')
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
+    const host = window.location.host
+    const url = `${protocol}://${host}/ws/terminal?token=${token}&assetId=${selectedAssetId.value}`
+    ws = new WebSocket(url)
+    ws.onopen = () => {
+      connStatus.value = 'connected'
+      fitAddon?.fit()
+      sendResize()
+      term?.writeln(`\r\n[CloudOps] ${t('terminal.statusConnected')} (${t('terminal.pooled')}).\r\n`)
+    }
+    ws.onmessage = (e) => term?.write(e.data)
+    ws.onclose = () => {
+      connStatus.value = 'disconnected'
+      term?.writeln(`\r\n[CloudOps] ${t('terminal.statusDisconnected')}.\r\n`)
+      refreshPool()
+    }
+    ws.onerror = () => {
+      connStatus.value = 'error'
+      term?.writeln(`\r\n[CloudOps] ${t('terminal.statusError')}.\r\n`)
+    }
+
+    term.onData((data) => {
+      if (ws?.readyState === WebSocket.OPEN) ws.send(data)
+    })
+  } catch {
+    connStatus.value = 'error'
+    message.error(t('terminal.connectFailed'))
+  } finally {
+    connecting.value = false
+  }
 }
 
 function disconnect() {
@@ -104,12 +144,13 @@ watch(isDark, () => {
 })
 
 onMounted(async () => {
-  await loadAssets()
+  await Promise.all([loadAssets(), refreshPool()])
   initTerminal()
 })
 
 onBeforeUnmount(() => {
   disconnect()
+  resizeObserver?.disconnect()
   term?.dispose()
 })
 </script>
@@ -118,7 +159,12 @@ onBeforeUnmount(() => {
   <NSpace vertical :size="16" class="terminal-page">
     <PageHeader :title="t('terminal.title')" :description="t('terminal.subtitle')">
       <template #extra>
-        <NTag :type="statusType" size="small" round>{{ statusLabel }}</NTag>
+        <NSpace align="center" :size="8">
+          <NTag :type="statusType" size="small" round>{{ statusLabel }}</NTag>
+          <NTag v-if="selectedAssetId && isPooled(selectedAssetId)" type="success" size="small" round>
+            {{ t('terminal.pooled') }}
+          </NTag>
+        </NSpace>
       </template>
     </PageHeader>
 
@@ -132,7 +178,9 @@ onBeforeUnmount(() => {
           clearable
           :aria-label="t('terminal.selectAsset')"
         />
-        <NButton type="primary" :disabled="!selectedAssetId" @click="connect">{{ t('terminal.connect') }}</NButton>
+        <NButton type="primary" :disabled="!selectedAssetId" :loading="connecting" @click="connect">
+          {{ t('terminal.connect') }}
+        </NButton>
       </NSpace>
       <div ref="terminalRef" class="terminal-container" />
     </NCard>

@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NInput, NSelect, NSpace, NSpin, useMessage } from 'naive-ui'
-import { createConversation, getMessages, sendChat, type ChatMessage } from '@/api/ai'
+import { NButton, NCard, NInput, NSelect, NSpace, NSpin, NTag, useMessage } from 'naive-ui'
+import {
+  createConversation,
+  getConversationTargets,
+  getMessages,
+  sendChat,
+  updateConversationTargets,
+  type ChatMessage,
+} from '@/api/ai'
 import { listChatProviders, type AiProvider } from '@/api/ai-providers'
+import { listAssets, type Asset } from '@/api/assets'
+import { listSshPool, type SshPoolEntry } from '@/api/sshPool'
 import EmptyState from '@/components/EmptyState.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { renderChatContent } from '@/utils/format'
@@ -14,9 +23,13 @@ const message = useMessage()
 const conversationId = ref<number | null>(null)
 const input = ref('')
 const loading = ref(false)
+const savingTargets = ref(false)
 const messages = ref<ChatMessage[]>([])
 const providers = ref<AiProvider[]>([])
+const assets = ref<Asset[]>([])
+const poolEntries = ref<SshPoolEntry[]>([])
 const selectedProviderId = ref<number | undefined>(undefined)
+const targetAssetIds = ref<number[]>([])
 const chatBottomRef = ref<HTMLDivElement | null>(null)
 
 const providerOptions = computed(() =>
@@ -25,6 +38,20 @@ const providerOptions = computed(() =>
     value: p.id,
   })),
 )
+
+const assetOptions = computed(() =>
+  assets.value
+    .filter((a) => a.hasSshCredential)
+    .map((a) => ({ label: `${a.name} (${a.host})`, value: a.id })),
+)
+
+const poolStatusByAsset = computed(() => {
+  const map = new Map<number, SshPoolEntry>()
+  for (const entry of poolEntries.value) {
+    map.set(entry.assetId, entry)
+  }
+  return map
+})
 
 function messageKey(msg: ChatMessage, index: number) {
   return `${msg.createdAt ?? index}-${msg.role}-${index}`
@@ -41,16 +68,58 @@ async function loadProviders() {
   }
 }
 
+async function loadAssets() {
+  const res = await listAssets()
+  if (res.success && res.data) {
+    assets.value = res.data
+  }
+}
+
+async function refreshPool() {
+  const res = await listSshPool()
+  if (res.success && res.data) {
+    poolEntries.value = res.data
+  }
+}
+
 async function ensureConversation() {
   if (conversationId.value) return
   const res = await createConversation()
-  if (res.success && res.data) conversationId.value = res.data.id
+  if (res.success && res.data) {
+    conversationId.value = res.data.id
+    targetAssetIds.value = res.data.targetAssetIds ?? []
+  }
+}
+
+async function loadTargets() {
+  if (!conversationId.value) return
+  const res = await getConversationTargets(conversationId.value)
+  if (res.success && res.data) {
+    targetAssetIds.value = res.data
+  }
 }
 
 async function loadMessages() {
   if (!conversationId.value) return
   const res = await getMessages(conversationId.value)
   if (res.success && res.data) messages.value = res.data
+}
+
+async function handleTargetsChange(value: number[]) {
+  if (!conversationId.value) return
+  savingTargets.value = true
+  try {
+    const res = await updateConversationTargets(conversationId.value, value)
+    if (res.success) {
+      targetAssetIds.value = value
+      await refreshPool()
+      message.success(t('ai.targetsSaved'))
+    }
+  } catch {
+    message.error(t('ai.targetsSaveFailed'))
+  } finally {
+    savingTargets.value = false
+  }
 }
 
 async function scrollToBottom() {
@@ -75,6 +144,7 @@ async function handleSend() {
     if (res.success && res.data) {
       conversationId.value = res.data.conversationId
       messages.value.push({ role: 'assistant', content: res.data.answer, createdAt: new Date().toISOString() })
+      await refreshPool()
     }
   } catch {
     message.error(t('ai.requestFailed'))
@@ -87,14 +157,23 @@ async function handleSend() {
 async function handleNewChat() {
   conversationId.value = null
   messages.value = []
+  targetAssetIds.value = []
   await ensureConversation()
 }
+
+watch(conversationId, async (id) => {
+  if (id) {
+    await loadTargets()
+    await loadMessages()
+  }
+})
 
 watch(messages, () => scrollToBottom(), { deep: true })
 
 onMounted(async () => {
-  await loadProviders()
+  await Promise.all([loadProviders(), loadAssets(), refreshPool()])
   await ensureConversation()
+  await loadTargets()
   await loadMessages()
 })
 </script>
@@ -104,6 +183,16 @@ onMounted(async () => {
     <PageHeader :title="t('ai.title')" :description="t('ai.subtitle')">
       <template #extra>
         <NSpace align="center" :size="12">
+          <NSelect
+            v-model:value="targetAssetIds"
+            class="select-lg"
+            :options="assetOptions"
+            :placeholder="t('ai.targetAssets')"
+            :loading="savingTargets"
+            multiple
+            :aria-label="t('ai.targetAssets')"
+            @update:value="handleTargetsChange"
+          />
           <NSelect
             v-model:value="selectedProviderId"
             class="select-md"
@@ -116,6 +205,18 @@ onMounted(async () => {
         </NSpace>
       </template>
     </PageHeader>
+
+    <NSpace v-if="targetAssetIds.length" size="small" class="target-tags">
+      <NTag
+        v-for="id in targetAssetIds"
+        :key="id"
+        size="small"
+        :type="poolStatusByAsset.get(id)?.alive ? 'success' : 'default'"
+      >
+        {{ assets.find((a) => a.id === id)?.name ?? id }}
+        · {{ poolStatusByAsset.get(id)?.alive ? t('ai.poolConnected') : t('ai.poolIdle') }}
+      </NTag>
+    </NSpace>
 
     <NCard class="chat-card page-card" :bordered="false">
       <div class="chat-messages" aria-live="polite">
@@ -169,6 +270,11 @@ onMounted(async () => {
   flex-direction: column;
   height: calc(100vh - var(--co-header-height) - var(--co-space-6) * 2);
   min-height: 480px;
+}
+
+.target-tags {
+  margin-bottom: var(--co-space-2);
+  flex-wrap: wrap;
 }
 
 .chat-card {
