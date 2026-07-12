@@ -10,5 +10,5 @@ public interface LlmRuntime {
 
     CompletionResult complete(List<ChatMessage> messages, List<ToolDefinition> tools);
 
-    void streamComplete(List<ChatMessage> messages, List<ToolDefinition> tools, Consumer<String> onToken);
+    CompletionResult streamComplete(List<ChatMessage> messages, List<ToolDefinition> tools, Consumer<String> onToken);
 }

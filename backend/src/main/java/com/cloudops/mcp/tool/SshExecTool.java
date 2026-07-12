@@ -6,6 +6,7 @@ import com.cloudops.mcp.McpTool;
 import com.cloudops.terminal.pool.PooledSshHandle;
 import com.cloudops.terminal.pool.SshConnectionPool;
 import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.apache.sshd.client.channel.ClientChannel;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Executes shell commands via the shared SSH connection pool.
- * Uses conversation target assets when {@code assetId} is omitted.
+ * When {@code assetId} is omitted, runs on all conversation target assets sequentially.
  */
 @Component
 public class SshExecTool implements McpTool {
@@ -34,8 +35,8 @@ public class SshExecTool implements McpTool {
 
     @Override
     public String description() {
-        return "Execute a shell command on a managed Linux asset via SSH and return combined stdout/stderr. "
-                + "If assetId is omitted, uses the conversation's active target asset. "
+        return "Execute a shell command on managed Linux assets via SSH and return combined stdout/stderr. "
+                + "If assetId is omitted, runs the command on each conversation target asset sequentially. "
                 + "Use for read-only diagnostics like df, free, docker ps, kubectl get. "
                 + "Destructive commands require prior approval.";
     }
@@ -43,14 +44,39 @@ public class SshExecTool implements McpTool {
     @Override
     public String parametersJson() {
         return """
-                {"type":"object","properties":{"assetId":{"type":"integer","description":"ID of the target asset (optional if conversation has target assets)"},"command":{"type":"string","description":"Shell command to execute"}},"required":["command"]}""";
+                {"type":"object","properties":{"assetId":{"type":"integer","description":"ID of a single target asset (optional; omit to run on all conversation targets)"},"command":{"type":"string","description":"Shell command to execute"}},"required":["command"]}""";
     }
 
     @Override
     public String execute(Map<String, Object> arguments, ExecutionContext context) throws Exception {
-        Long assetId = resolveAssetId(arguments, context);
         String command = String.valueOf(arguments.get("command"));
+        List<Long> assetIds = resolveAssetIds(arguments, context);
 
+        if (assetIds.size() == 1) {
+            return executeOnAsset(assetIds.getFirst(), command, context);
+        }
+
+        StringBuilder combined = new StringBuilder();
+        for (Long assetId : assetIds) {
+            AssetResponse asset = assetService.get(assetId);
+            combined.append("=== ")
+                    .append(asset.name())
+                    .append(" (id=")
+                    .append(assetId)
+                    .append(", host=")
+                    .append(asset.host() != null ? asset.host() : "n/a")
+                    .append(") ===\n");
+            try {
+                combined.append(executeOnAsset(assetId, command, context));
+            } catch (Exception ex) {
+                combined.append("Error: ").append(ex.getMessage());
+            }
+            combined.append("\n\n");
+        }
+        return combined.toString().trim();
+    }
+
+    private String executeOnAsset(Long assetId, String command, ExecutionContext context) throws Exception {
         AssetResponse asset = assetService.get(assetId);
         if (asset.host() == null) {
             return "Error: asset has no host configured";
@@ -71,14 +97,14 @@ public class SshExecTool implements McpTool {
         }
     }
 
-    private Long resolveAssetId(Map<String, Object> arguments, ExecutionContext context) {
+    private List<Long> resolveAssetIds(Map<String, Object> arguments, ExecutionContext context) {
         Object raw = arguments.get("assetId");
         if (raw instanceof Number number) {
-            return number.longValue();
+            return List.of(number.longValue());
         }
         List<Long> targets = context.targetAssetIds();
         if (targets != null && !targets.isEmpty()) {
-            return targets.getFirst();
+            return new ArrayList<>(targets);
         }
         throw new IllegalArgumentException(
                 "No target asset specified. Set conversation target assets or pass assetId.");

@@ -66,7 +66,8 @@ public class AnthropicRuntime implements LlmRuntime {
     }
 
     @Override
-    public void streamComplete(List<ChatMessage> messages, List<ToolDefinition> tools, Consumer<String> onToken) {
+    public CompletionResult streamComplete(List<ChatMessage> messages, List<ToolDefinition> tools, Consumer<String> onToken) {
+        StringBuilder content = new StringBuilder();
         try {
             String body = buildRequestBody(messages, tools, true);
             httpClient.send(
@@ -88,15 +89,26 @@ public class AnthropicRuntime implements LlmRuntime {
                             if ("content_block_delta".equals(event.path("type").asText())) {
                                 String text = event.path("delta").path("text").asText("");
                                 if (!text.isBlank()) {
+                                    content.append(text);
                                     onToken.accept(text);
                                 }
                             }
                         } catch (Exception ignored) {
                         }
                     });
+            if (!content.isEmpty()) {
+                return new CompletionResult(content.toString(), List.of());
+            }
         } catch (Exception ex) {
-            onToken.accept("[stream failed] " + ex.getMessage());
+            String err = "[stream failed] " + ex.getMessage();
+            onToken.accept(err);
+            return new CompletionResult(err, List.of());
         }
+        CompletionResult result = complete(messages, tools);
+        if (result.content() != null && !result.content().isBlank()) {
+            onToken.accept(result.content());
+        }
+        return result;
     }
 
     public List<String> listModels() {

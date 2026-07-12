@@ -1,21 +1,33 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NInput, NSelect, NSpace, NSpin, NTag, useMessage } from 'naive-ui'
+import { NAlert, NButton, NCard, NInput, NSelect, NSpace, NSpin, NTag, useMessage } from 'naive-ui'
 import {
   createConversation,
   getConversationTargets,
   getMessages,
-  sendChat,
   updateConversationTargets,
   type ChatMessage,
 } from '@/api/ai'
+import { createAiStreamClient, type AiStreamEvent } from '@/api/aiStream'
 import { listChatProviders, type AiProvider } from '@/api/ai-providers'
 import { listAssets, type Asset } from '@/api/assets'
 import { listSshPool, type SshPoolEntry } from '@/api/sshPool'
 import EmptyState from '@/components/EmptyState.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import { renderChatContent } from '@/utils/format'
+
+interface ToolBlock {
+  tool: string
+  status: string
+  output: string
+}
+
+interface DisplayMessage extends ChatMessage {
+  streaming?: boolean
+  tools?: ToolBlock[]
+  pendingApproval?: { approvalId: number; risk: string; message: string }
+}
 
 const { t } = useI18n()
 const message = useMessage()
@@ -24,13 +36,14 @@ const conversationId = ref<number | null>(null)
 const input = ref('')
 const loading = ref(false)
 const savingTargets = ref(false)
-const messages = ref<ChatMessage[]>([])
+const messages = ref<DisplayMessage[]>([])
 const providers = ref<AiProvider[]>([])
 const assets = ref<Asset[]>([])
 const poolEntries = ref<SshPoolEntry[]>([])
 const selectedProviderId = ref<number | undefined>(undefined)
 const targetAssetIds = ref<number[]>([])
 const chatBottomRef = ref<HTMLDivElement | null>(null)
+const streamingIndex = ref<number | null>(null)
 
 const providerOptions = computed(() =>
   providers.value.map((p) => ({
@@ -53,13 +66,117 @@ const poolStatusByAsset = computed(() => {
   return map
 })
 
-function messageKey(msg: ChatMessage, index: number) {
+function messageKey(msg: DisplayMessage, index: number) {
   return `${msg.createdAt ?? index}-${msg.role}-${index}`
 }
 
 function roleLabel(role: string) {
   return role === 'user' ? t('ai.roleUser') : t('ai.roleAssistant')
 }
+
+function ensureStreamingMessage(): number {
+  if (streamingIndex.value != null) {
+    return streamingIndex.value
+  }
+  const idx = messages.value.length
+  messages.value.push({
+    role: 'assistant',
+    content: '',
+    createdAt: new Date().toISOString(),
+    streaming: true,
+    tools: [],
+  })
+  streamingIndex.value = idx
+  return idx
+}
+
+function handleStreamEvent(event: AiStreamEvent) {
+  if (event.type === 'conversation' && event.conversationId) {
+    conversationId.value = event.conversationId
+    return
+  }
+
+  if (event.type === 'resume_start') {
+    if (event.conversationId) {
+      conversationId.value = event.conversationId
+    }
+    loading.value = true
+    streamingIndex.value = null
+    ensureStreamingMessage()
+    return
+  }
+
+  if (event.type === 'token' && event.content) {
+    const idx = ensureStreamingMessage()
+    messages.value[idx].content += event.content
+    return
+  }
+
+  if (event.type === 'tool_start' && event.tool) {
+    const idx = ensureStreamingMessage()
+    const tools = messages.value[idx].tools ?? []
+    tools.push({
+      tool: event.tool,
+      status: 'RUNNING',
+      output: event.content ?? '',
+    })
+    messages.value[idx].tools = tools
+    return
+  }
+
+  if (event.type === 'tool_result' && event.tool) {
+    const idx = ensureStreamingMessage()
+    const tools = messages.value[idx].tools ?? []
+    const existing = tools.find((block) => block.tool === event.tool && block.status === 'RUNNING')
+    if (existing) {
+      existing.status = event.status ?? 'SUCCESS'
+      existing.output = event.content ?? ''
+    } else {
+      tools.push({
+        tool: event.tool,
+        status: event.status ?? 'SUCCESS',
+        output: event.content ?? '',
+      })
+    }
+    messages.value[idx].tools = tools
+    return
+  }
+
+  if (event.type === 'approval_required' && event.approvalId) {
+    const idx = ensureStreamingMessage()
+    messages.value[idx].pendingApproval = {
+      approvalId: event.approvalId,
+      risk: event.risk ?? 'UNKNOWN',
+      message: event.content ?? '',
+    }
+    if (event.content) {
+      messages.value[idx].content = event.content
+    }
+    return
+  }
+
+  if (event.type === 'done') {
+    const idx = streamingIndex.value
+    if (idx != null) {
+      if (event.content && !messages.value[idx].content) {
+        messages.value[idx].content = event.content
+      }
+      messages.value[idx].streaming = false
+    }
+    streamingIndex.value = null
+    loading.value = false
+    void refreshPool()
+    return
+  }
+
+  if (event.type === 'error') {
+    message.error(event.content ?? t('ai.requestFailed'))
+    loading.value = false
+    streamingIndex.value = null
+  }
+}
+
+const streamClient = createAiStreamClient(handleStreamEvent)
 
 async function loadProviders() {
   const res = await listChatProviders()
@@ -130,27 +247,22 @@ async function scrollToBottom() {
 async function handleSend() {
   if (!input.value.trim() || loading.value) return
   loading.value = true
+  streamingIndex.value = null
   const userMsg = input.value
   input.value = ''
   messages.value.push({ role: 'user', content: userMsg, createdAt: new Date().toISOString() })
   await scrollToBottom()
   try {
     await ensureConversation()
-    const res = await sendChat(
+    await streamClient.connect()
+    streamClient.sendChat(
       userMsg,
       conversationId.value ?? undefined,
       selectedProviderId.value ?? undefined,
     )
-    if (res.success && res.data) {
-      conversationId.value = res.data.conversationId
-      messages.value.push({ role: 'assistant', content: res.data.answer, createdAt: new Date().toISOString() })
-      await refreshPool()
-    }
   } catch {
     message.error(t('ai.requestFailed'))
-  } finally {
     loading.value = false
-    await scrollToBottom()
   }
 }
 
@@ -158,6 +270,7 @@ async function handleNewChat() {
   conversationId.value = null
   messages.value = []
   targetAssetIds.value = []
+  streamingIndex.value = null
   await ensureConversation()
 }
 
@@ -175,6 +288,15 @@ onMounted(async () => {
   await ensureConversation()
   await loadTargets()
   await loadMessages()
+  try {
+    await streamClient.connect()
+  } catch {
+    // User can retry on first send.
+  }
+})
+
+onBeforeUnmount(() => {
+  streamClient.disconnect()
 })
 </script>
 
@@ -233,11 +355,40 @@ onMounted(async () => {
         >
           <div class="chat-bubble">
             <span class="chat-bubble__role">{{ roleLabel(msg.role) }}</span>
+            <div
+              v-for="(tool, ti) in msg.tools"
+              :key="`${tool.tool}-${ti}`"
+              class="tool-block"
+            >
+              <div class="tool-block__header">
+                <span class="tool-block__name">{{ tool.tool }}</span>
+                <NTag size="small" :type="tool.status === 'SUCCESS' ? 'success' : tool.status === 'RUNNING' ? 'info' : 'warning'">
+                  {{ tool.status }}
+                </NTag>
+              </div>
+              <pre v-if="tool.output" class="tool-block__output">{{ tool.output }}</pre>
+            </div>
+            <NAlert
+              v-if="msg.pendingApproval"
+              type="warning"
+              class="approval-alert"
+            >
+              <template #header>
+                {{ t('ai.approvalRequired') }} #{{ msg.pendingApproval.approvalId }}
+                ({{ msg.pendingApproval.risk }})
+              </template>
+              {{ msg.pendingApproval.message }}
+              <div class="approval-hint">{{ t('ai.approvalResume') }}</div>
+            </NAlert>
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div class="chat-bubble__content" v-html="renderChatContent(msg.content)" />
+            <div
+              v-if="msg.content"
+              class="chat-bubble__content"
+              v-html="renderChatContent(msg.content)"
+            />
           </div>
         </div>
-        <div v-if="loading" class="chat-loading">
+        <div v-if="loading && streamingIndex === null" class="chat-loading">
           <NSpin size="small" />
           <span>{{ t('ai.sending') }}</span>
         </div>
@@ -343,6 +494,49 @@ onMounted(async () => {
   line-height: 1.6;
   color: var(--co-text);
   word-break: break-word;
+}
+
+.tool-block {
+  margin-bottom: var(--co-space-3);
+  padding: var(--co-space-2) var(--co-space-3);
+  border-radius: var(--co-radius-md);
+  border: 1px dashed var(--co-border);
+  background: rgba(15, 118, 110, 0.04);
+}
+
+.tool-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--co-space-2);
+  margin-bottom: var(--co-space-2);
+}
+
+.tool-block__name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: var(--co-font-mono, monospace);
+}
+
+.tool-block__output {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--co-text-secondary);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.approval-alert {
+  margin-bottom: var(--co-space-3);
+}
+
+.approval-hint {
+  margin-top: var(--co-space-2);
+  font-size: 0.75rem;
+  color: var(--co-text-muted);
 }
 
 .chat-loading {

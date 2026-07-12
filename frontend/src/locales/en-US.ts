@@ -113,6 +113,9 @@ export default {
     roleAssistant: 'Assistant',
     sending: 'Thinking…',
     sendHint: 'Ctrl + Enter to send',
+    approvalRequired: 'Awaiting approval',
+    approvalResume: 'Agent will resume automatically after approval',
+    toolRunning: 'Running',
   },
   aiSettings: {
     subtitle: 'Configure AI providers, default models, and RAG retrieval',
