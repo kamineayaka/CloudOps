@@ -27,7 +27,7 @@
 | [x] P0-1 | **单元测试：`PlatformSecretStore`** | 覆盖 env > 文件 > 生成 优先级、首次持久化、重启复用 | `mvn test` 通过，临时目录测试 |
 | [x] P0-2 | **单元测试：`LlmRuntimeFactory`** | OpenAI / Anthropic 请求体构造、API Key 加解密 | mock 或快照测试 |
 | [x] P0-3 | **集成测试：AI Provider CRUD** | `@SpringBootTest` + Testcontainers Postgres | 创建/更新/删除/脱敏/默认 Provider 约束 |
-| P0-4 | **CI 全绿验证** | 大改后首次完整 `mvn verify` + `npm run build` | GitHub Actions 通过 |
+| [x] P0-4 | **CI 全绿验证** | 大改后首次完整 `mvn verify` + `npm run build` | GitHub Actions 通过 |
 
 ---
 
@@ -35,7 +35,7 @@
 
 | # | 任务 | 说明 | 完成标准 |
 |---|------|------|----------|
-| P1-1 | **英文 UI（`en-US`）** | 新增 `frontend/src/locales/en-US.ts`，顶栏语言切换 | 主要页面双语可切换 |
+| [x] P1-1 | **英文 UI（`en-US`）** | 新增 `frontend/src/locales/en-US.ts`，顶栏语言切换 | 主要页面双语可切换 |
 | P1-2 | **清理硬编码中文** | 如 `AssetsView`「已配置」等迁入 i18n | grep 无用户可见硬编码 |
 | P1-3 | **密钥轮换文档** | `docs/deployment.md`：轮换 `JWT_SECRET` / `CREDENTIALS_MASTER_KEY` 影响 | 文档可照做 |
 | P1-4 | **Embedding 切换指引** | 设置页或知识库 API 返回 reindex 提示文案 | 切换 Provider/dims 后有明确提示 |
