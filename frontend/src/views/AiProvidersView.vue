@@ -11,6 +11,7 @@ import {
   NInput,
   NInputNumber,
   NModal,
+  NPopconfirm,
   NSelect,
   NSpace,
   NSwitch,
@@ -31,6 +32,8 @@ import {
   type ProviderType,
 } from '@/api/ai-providers'
 import { getIndexStats, type IndexStats } from '@/api/knowledge'
+import EmptyState from '@/components/EmptyState.vue'
+import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -68,7 +71,7 @@ const form = ref<AiProviderRequest>({
 
 const typeOptions = computed(() => [
   { label: t('aiSettings.openAiCompat'), value: 'OPENAI_COMPAT' },
-  { label: 'Anthropic', value: 'ANTHROPIC' },
+  { label: t('aiSettings.anthropic'), value: 'ANTHROPIC' },
 ])
 
 const showReindexAlert = computed(() => {
@@ -94,24 +97,24 @@ const embeddingProviderOptions = computed(() =>
   providers.value.filter((p) => p.supportsEmbedding).map((p) => ({ label: p.name, value: p.id })),
 )
 
-const columns = [
-  { title: 'ID', key: 'id', width: 60 },
+const columns = computed(() => [
+  { title: t('common.id'), key: 'id', width: 60 },
   { title: t('aiSettings.name'), key: 'name' },
   {
     title: t('aiSettings.type'),
     key: 'providerType',
     render: (row: AiProvider) =>
-      row.providerType === 'ANTHROPIC' ? 'Anthropic' : t('aiSettings.openAiCompat'),
+      row.providerType === 'ANTHROPIC' ? t('aiSettings.anthropic') : t('aiSettings.openAiCompat'),
   },
-  { title: t('aiSettings.chatModel'), key: 'chatModel' },
+  { title: t('aiSettings.chatModel'), key: 'chatModel', ellipsis: { tooltip: true } },
   {
     title: t('aiSettings.defaults'),
     key: 'defaults',
     render: (row: AiProvider) => {
-      const tags = []
-      if (row.defaultChat) tags.push(h(NTag, { size: 'small', type: 'success' }, { default: () => t('aiSettings.tagChat') }))
-      if (row.defaultEmbedding) tags.push(h(NTag, { size: 'small', type: 'info', style: 'margin-left:4px' }, { default: () => t('aiSettings.tagEmbed') }))
-      return tags.length ? tags : '-'
+      const tags: ReturnType<typeof h>[] = []
+      if (row.defaultChat) tags.push(h(NTag, { size: 'small', type: 'success', round: true }, { default: () => t('aiSettings.tagChat') }))
+      if (row.defaultEmbedding) tags.push(h(NTag, { size: 'small', type: 'info', round: true }, { default: () => t('aiSettings.tagEmbed') }))
+      return tags.length ? h(NSpace, { size: 4 }, { default: () => tags }) : '-'
     },
   },
   {
@@ -122,21 +125,24 @@ const columns = [
   {
     title: t('common.actions'),
     key: 'actions',
-    render: (row: AiProvider) => [
-      h(NButton, { size: 'small', onClick: () => openEdit(row) }, { default: () => t('common.edit') }),
-      h(
-        NButton,
-        { size: 'small', style: 'margin-left:8px', onClick: () => handleTest(row.id) },
-        { default: () => t('aiSettings.test') },
-      ),
-      h(
-        NButton,
-        { size: 'small', type: 'error', style: 'margin-left:8px', onClick: () => handleDelete(row.id) },
-        { default: () => t('common.delete') },
-      ),
-    ],
+    width: 240,
+    render: (row: AiProvider) =>
+      h(NSpace, { size: 8 }, {
+        default: () => [
+          h(NButton, { size: 'small', onClick: () => openEdit(row) }, { default: () => t('common.edit') }),
+          h(NButton, { size: 'small', onClick: () => handleTest(row.id) }, { default: () => t('aiSettings.test') }),
+          h(
+            NPopconfirm,
+            { onPositiveClick: () => handleDelete(row.id) },
+            {
+              trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => t('common.delete') }),
+              default: () => t('common.confirmDelete'),
+            },
+          ),
+        ],
+      }),
   },
-]
+])
 
 function resetForm() {
   form.value = {
@@ -279,17 +285,21 @@ onMounted(load)
 
 <template>
   <NSpace vertical :size="16">
+    <PageHeader :title="t('nav.aiSettings')" :description="t('aiSettings.subtitle')" />
+
     <NAlert v-if="showReindexAlert" type="warning" :title="t('aiSettings.reindexRequired')">
       {{ reindexAlertText }}
     </NAlert>
-    <NCard :title="t('aiSettings.providersTitle')">
+
+    <NCard class="page-card" :title="t('aiSettings.providersTitle')" :bordered="false">
       <template #header-extra>
         <NButton type="primary" @click="openCreate">{{ t('aiSettings.addProvider') }}</NButton>
       </template>
       <NDataTable :loading="loading" :columns="columns" :data="providers" :bordered="false" />
+      <EmptyState v-if="!loading && providers.length === 0" :message="t('aiSettings.empty')" />
     </NCard>
 
-    <NCard :title="t('aiSettings.platformTitle')">
+    <NCard class="page-card" :title="t('aiSettings.platformTitle')" :bordered="false">
       <NForm label-placement="left" label-width="180">
         <NFormItem :label="t('aiSettings.defaultChat')">
           <NSelect v-model:value="settings.defaultChatProviderId" :options="chatProviderOptions" clearable />
@@ -314,8 +324,13 @@ onMounted(load)
     </NCard>
   </NSpace>
 
-  <NModal v-model:show="showModal" preset="card" :title="editingId ? t('aiSettings.editProvider') : t('aiSettings.addProvider')" style="width: 560px">
-    <NForm label-placement="left" label-width="120">
+  <NModal
+    v-model:show="showModal"
+    preset="card"
+    class="modal-lg"
+    :title="editingId ? t('aiSettings.editProvider') : t('aiSettings.addProvider')"
+  >
+    <NForm label-placement="top">
       <NFormItem :label="t('aiSettings.type')">
         <NSelect v-model:value="form.providerType" :options="typeOptions" @update:value="onTypeChange" />
       </NFormItem>
@@ -335,7 +350,7 @@ onMounted(load)
         <NInput v-model:value="form.embeddingModel" />
       </NFormItem>
       <NFormItem v-if="form.providerType === 'OPENAI_COMPAT'" :label="t('aiSettings.embeddingDims')">
-        <NInputNumber v-model:value="form.embeddingDims" :min="256" :max="4096" />
+        <NInputNumber v-model:value="form.embeddingDims" :min="256" :max="4096" class="full-width" />
       </NFormItem>
       <NFormItem v-if="form.providerType === 'OPENAI_COMPAT'" :label="t('aiSettings.supportsEmbedding')">
         <NSwitch v-model:value="form.supportsEmbedding" />
@@ -343,8 +358,9 @@ onMounted(load)
       <NFormItem :label="t('aiSettings.enabled')">
         <NSwitch v-model:value="form.enabled" />
       </NFormItem>
-      <NSpace>
+      <NSpace justify="end">
         <NButton :loading="fetchingModels" @click="handleFetchModels">{{ t('aiSettings.fetchModels') }}</NButton>
+        <NButton @click="showModal = false">{{ t('common.cancel') }}</NButton>
         <NButton type="primary" @click="handleSaveProvider">{{ t('common.save') }}</NButton>
       </NSpace>
     </NForm>
@@ -353,8 +369,13 @@ onMounted(load)
 
 <style scoped>
 .hint {
-  color: #64748b;
-  font-size: 13px;
+  color: var(--co-text-secondary);
+  font-size: 0.8125rem;
   margin: 0;
+  line-height: 1.5;
+}
+
+.full-width {
+  width: 100%;
 }
 </style>
