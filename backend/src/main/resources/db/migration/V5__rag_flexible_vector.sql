@@ -4,6 +4,3 @@ DROP INDEX IF EXISTS idx_kb_chunks_embedding;
 
 ALTER TABLE kb_chunks
     ALTER COLUMN embedding TYPE vector USING embedding::vector;
-
-CREATE INDEX IF NOT EXISTS idx_kb_chunks_embedding ON kb_chunks
-    USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
