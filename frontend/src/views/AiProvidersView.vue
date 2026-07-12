@@ -2,6 +2,7 @@
 import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
+  NAlert,
   NButton,
   NCard,
   NDataTable,
@@ -29,6 +30,7 @@ import {
   type AiProviderRequest,
   type ProviderType,
 } from '@/api/ai-providers'
+import { getIndexStats, type IndexStats } from '@/api/knowledge'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -39,6 +41,8 @@ const showModal = ref(false)
 const editingId = ref<number | null>(null)
 const modelOptions = ref<{ label: string; value: string }[]>([])
 const fetchingModels = ref(false)
+const indexStats = ref<IndexStats | null>(null)
+const initialEmbeddingProviderId = ref<number | null>(null)
 
 const settings = ref({
   defaultChatProviderId: null as number | null,
@@ -62,10 +66,25 @@ const form = ref<AiProviderRequest>({
   timeoutMs: 60000,
 })
 
-const typeOptions = [
-  { label: 'OpenAI 兼容', value: 'OPENAI_COMPAT' },
+const typeOptions = computed(() => [
+  { label: t('aiSettings.openAiCompat'), value: 'OPENAI_COMPAT' },
   { label: 'Anthropic', value: 'ANTHROPIC' },
-]
+])
+
+const showReindexAlert = computed(() => {
+  if (settings.value.defaultEmbeddingProviderId !== initialEmbeddingProviderId.value) {
+    return true
+  }
+  if (!editingId.value || !showModal.value) return false
+  const row = providers.value.find((p) => p.id === editingId.value)
+  if (!row || row.id !== settings.value.defaultEmbeddingProviderId) return false
+  return (
+    form.value.embeddingModel !== (row.embeddingModel ?? '') ||
+    form.value.embeddingDims !== (row.embeddingDims ?? 1536)
+  )
+})
+
+const reindexAlertText = computed(() => indexStats.value?.reindexHint ?? t('aiSettings.reindexRequired'))
 
 const chatProviderOptions = computed(() =>
   providers.value.filter((p) => p.supportsChat).map((p) => ({ label: p.name, value: p.id })),
@@ -81,7 +100,8 @@ const columns = [
   {
     title: t('aiSettings.type'),
     key: 'providerType',
-    render: (row: AiProvider) => (row.providerType === 'ANTHROPIC' ? 'Anthropic' : 'OpenAI 兼容'),
+    render: (row: AiProvider) =>
+      row.providerType === 'ANTHROPIC' ? 'Anthropic' : t('aiSettings.openAiCompat'),
   },
   { title: t('aiSettings.chatModel'), key: 'chatModel' },
   {
@@ -89,8 +109,8 @@ const columns = [
     key: 'defaults',
     render: (row: AiProvider) => {
       const tags = []
-      if (row.defaultChat) tags.push(h(NTag, { size: 'small', type: 'success' }, { default: () => 'Chat' }))
-      if (row.defaultEmbedding) tags.push(h(NTag, { size: 'small', type: 'info', style: 'margin-left:4px' }, { default: () => 'Embed' }))
+      if (row.defaultChat) tags.push(h(NTag, { size: 'small', type: 'success' }, { default: () => t('aiSettings.tagChat') }))
+      if (row.defaultEmbedding) tags.push(h(NTag, { size: 'small', type: 'info', style: 'margin-left:4px' }, { default: () => t('aiSettings.tagEmbed') }))
       return tags.length ? tags : '-'
     },
   },
@@ -174,11 +194,17 @@ function onTypeChange(type: ProviderType) {
 async function load() {
   loading.value = true
   try {
-    const [provRes, settingsRes] = await Promise.all([listAllProviders(), getAiSettings()])
+    const [provRes, settingsRes, statsRes] = await Promise.all([
+      listAllProviders(),
+      getAiSettings(),
+      getIndexStats(),
+    ])
     if (provRes.success && provRes.data) providers.value = provRes.data
     if (settingsRes.success && settingsRes.data) {
       settings.value = { ...settingsRes.data }
+      initialEmbeddingProviderId.value = settingsRes.data.defaultEmbeddingProviderId
     }
+    if (statsRes.success && statsRes.data) indexStats.value = statsRes.data
   } finally {
     loading.value = false
   }
@@ -253,6 +279,9 @@ onMounted(load)
 
 <template>
   <NSpace vertical :size="16">
+    <NAlert v-if="showReindexAlert" type="warning" :title="t('aiSettings.reindexRequired')">
+      {{ reindexAlertText }}
+    </NAlert>
     <NCard :title="t('aiSettings.providersTitle')">
       <template #header-extra>
         <NButton type="primary" @click="openCreate">{{ t('aiSettings.addProvider') }}</NButton>

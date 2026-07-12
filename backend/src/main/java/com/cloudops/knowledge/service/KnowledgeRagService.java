@@ -52,18 +52,30 @@ public class KnowledgeRagService {
     public IndexStatsResponse stats() {
         var settings = settingsService.getSettings();
         String embeddingLabel = "none";
+        Integer embeddingDims = null;
         if (settings.getDefaultEmbeddingProviderId() != null) {
-            embeddingLabel = providerRepository.findById(settings.getDefaultEmbeddingProviderId())
+            var providerOpt = providerRepository.findById(settings.getDefaultEmbeddingProviderId());
+            embeddingLabel = providerOpt
                     .map(p -> p.getName() + " / " + p.getEmbeddingModel())
                     .orElse("unknown");
+            embeddingDims = providerOpt.map(p -> p.getEmbeddingDims()).orElse(null);
+        }
+        long totalChunks = kbChunkRepository.count();
+        String reindexHint = null;
+        if (settings.isRagEnabled() && totalChunks > 0) {
+            reindexHint = "Knowledge base has " + totalChunks + " indexed chunks (provider: " + embeddingLabel
+                    + ", dims: " + (embeddingDims != null ? embeddingDims : "n/a")
+                    + "). Run POST /api/knowledge/reindex after switching embedding provider or dimensions.";
         }
         return new IndexStatsResponse(
                 settings.isRagEnabled(),
                 embeddingLabel,
-                kbChunkRepository.count(),
+                embeddingDims,
+                totalChunks,
                 kbChunkRepository.countBySourceType(KnowledgeSourceType.ARCHITECTURE),
                 kbChunkRepository.countBySourceType(KnowledgeSourceType.WORK_LOG),
-                kbChunkRepository.countBySourceType(KnowledgeSourceType.MANUAL));
+                kbChunkRepository.countBySourceType(KnowledgeSourceType.MANUAL),
+                reindexHint);
     }
 
     @Transactional
