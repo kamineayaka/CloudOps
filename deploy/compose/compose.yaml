@@ -49,7 +49,7 @@ services:
   backend:
     build:
       context: ../../backend
-      dockerfile: ../../docker/Dockerfile.backend
+      dockerfile: ../docker/Dockerfile.backend
     container_name: cloudops-backend
     restart: unless-stopped
     environment:
