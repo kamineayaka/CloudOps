@@ -81,7 +81,7 @@ ON CONFLICT DO NOTHING;
 -- Seed default admin user (password: admin123 - BCrypt hash)
 -- MUST be changed after first login in production.
 INSERT INTO users (username, password, display_name, rbac_tier, approval_policy)
-VALUES ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'System Administrator', 'HIGH', 'MANUAL_A')
+VALUES ('admin', '$2a$10$ZKsyX8rPAqNxG.PIldklOec0L/pWQhwUIl2XNsSztB0xT10BudseG', 'System Administrator', 'HIGH', 'MANUAL_A')
 ON CONFLICT (username) DO NOTHING;
 
 INSERT INTO user_roles (user_id, role_id)
