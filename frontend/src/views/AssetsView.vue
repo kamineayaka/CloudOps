@@ -43,7 +43,7 @@ const columns = [
   {
     title: t('assets.credential'),
     key: 'hasSshCredential',
-    render: (row: Asset) => (row.hasSshCredential ? '已配置' : '未配置'),
+    render: (row: Asset) => (row.hasSshCredential ? t('common.configured') : t('common.notConfigured')),
   },
   {
     title: t('common.actions'),
@@ -68,7 +68,7 @@ async function load() {
 async function handleCreate() {
   const res = await createAsset({ ...form.value, kind: form.value.kind as 'SERVER' })
   if (res.success) {
-    message.success('资产已创建')
+    message.success(t('assets.created'))
     showCreate.value = false
     await load()
   }
@@ -83,7 +83,7 @@ async function handleSaveCredential() {
   if (!selectedAssetId.value) return
   const res = await saveSshCredential(selectedAssetId.value, credForm.value)
   if (res.success) {
-    message.success('SSH 凭证已保存')
+    message.success(t('assets.credentialSaved'))
     showCredential.value = false
     await load()
   }
@@ -92,7 +92,7 @@ async function handleSaveCredential() {
 async function handleDelete(id: number) {
   const res = await deleteAsset(id)
   if (res.success) {
-    message.success('已删除')
+    message.success(t('assets.deleted'))
     await load()
   }
 }

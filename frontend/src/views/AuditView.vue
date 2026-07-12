@@ -23,12 +23,12 @@ const loading = ref(false)
 
 const columns = [
   { title: 'ID', key: 'id', width: 70 },
-  { title: '操作者', key: 'actorName' },
-  { title: '动作', key: 'action' },
-  { title: '资源', key: 'resource' },
-  { title: '风险', key: 'riskLevel' },
-  { title: '状态', key: 'status', render: (row: AuditLog) => h(NTag, { type: row.status === 'SUCCESS' ? 'success' : 'error' }, { default: () => row.status }) },
-  { title: '时间', key: 'createdAt' },
+  { title: t('audit.actor'), key: 'actorName' },
+  { title: t('audit.action'), key: 'action' },
+  { title: t('audit.resource'), key: 'resource' },
+  { title: t('audit.risk'), key: 'riskLevel' },
+  { title: t('audit.status'), key: 'status', render: (row: AuditLog) => h(NTag, { type: row.status === 'SUCCESS' ? 'success' : 'error' }, { default: () => row.status }) },
+  { title: t('audit.time'), key: 'createdAt' },
 ]
 
 async function load() {

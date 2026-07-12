@@ -35,14 +35,14 @@ const user = computed(() => authStore.user)
         </NCard>
       </NGridItem>
       <NGridItem>
-        <NCard title="平台模块">
+        <NCard :title="t('dashboard.modulesTitle')">
           <NSpace>
-            <NStatistic label="资产管理" value="✓" />
-            <NStatistic label="AI 运维" value="✓" />
-            <NStatistic label="Web 终端" value="✓" />
-            <NStatistic label="审批工作流" value="✓" />
-            <NStatistic label="审计哈希链" value="✓" />
-            <NStatistic label="知识库" value="✓" />
+            <NStatistic :label="t('dashboard.modules.assets')" value="✓" />
+            <NStatistic :label="t('dashboard.modules.ai')" value="✓" />
+            <NStatistic :label="t('dashboard.modules.terminal')" value="✓" />
+            <NStatistic :label="t('dashboard.modules.approvals')" value="✓" />
+            <NStatistic :label="t('dashboard.modules.audit')" value="✓" />
+            <NStatistic :label="t('dashboard.modules.knowledge')" value="✓" />
           </NSpace>
         </NCard>
       </NGridItem>

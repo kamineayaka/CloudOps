@@ -14,8 +14,8 @@ const columns = [
   { title: 'ID', key: 'id', width: 60 },
   { title: t('approvals.action'), key: 'action' },
   { title: t('approvals.risk'), key: 'riskLevel', render: (row: Approval) => h(NTag, { type: riskType(row.riskLevel) }, { default: () => row.riskLevel }) },
-  { title: 'Resource', key: 'resource' },
-  { title: 'Payload', key: 'payload', ellipsis: { tooltip: true } },
+  { title: t('common.resource'), key: 'resource' },
+  { title: t('common.payload'), key: 'payload', ellipsis: { tooltip: true } },
   {
     title: t('common.actions'),
     key: 'actions',
@@ -45,7 +45,7 @@ async function load() {
 async function handleDecide(id: number, decision: 'APPROVE' | 'REJECT') {
   const res = await decideApproval(id, decision)
   if (res.success) {
-    message.success(decision === 'APPROVE' ? '已批准' : '已拒绝')
+    message.success(decision === 'APPROVE' ? t('approvals.approved') : t('approvals.rejected'))
     await load()
   }
 }
