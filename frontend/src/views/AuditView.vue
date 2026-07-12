@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { NButton, NCard, NDataTable, NTag, useMessage } from 'naive-ui'
+import { NButton, NCard, NDataTable, NTag, NSpace, useMessage } from 'naive-ui'
 import client from '@/api/client'
 import type { ApiResponse } from '@/api/types'
+import EmptyState from '@/components/EmptyState.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import { formatDateTime } from '@/utils/format'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const message = useMessage()
 
 interface AuditLog {
@@ -21,15 +24,24 @@ interface AuditLog {
 const logs = ref<AuditLog[]>([])
 const loading = ref(false)
 
-const columns = [
-  { title: 'ID', key: 'id', width: 70 },
+const columns = computed(() => [
+  { title: t('common.id'), key: 'id', width: 70 },
   { title: t('audit.actor'), key: 'actorName' },
   { title: t('audit.action'), key: 'action' },
-  { title: t('audit.resource'), key: 'resource' },
+  { title: t('audit.resource'), key: 'resource', ellipsis: { tooltip: true } },
   { title: t('audit.risk'), key: 'riskLevel' },
-  { title: t('audit.status'), key: 'status', render: (row: AuditLog) => h(NTag, { type: row.status === 'SUCCESS' ? 'success' : 'error' }, { default: () => row.status }) },
-  { title: t('audit.time'), key: 'createdAt' },
-]
+  {
+    title: t('audit.status'),
+    key: 'status',
+    render: (row: AuditLog) =>
+      h(NTag, { type: row.status === 'SUCCESS' ? 'success' : 'error', size: 'small', round: true }, { default: () => row.status }),
+  },
+  {
+    title: t('audit.time'),
+    key: 'createdAt',
+    render: (row: AuditLog) => formatDateTime(row.createdAt, locale.value),
+  },
+])
 
 async function load() {
   loading.value = true
@@ -55,11 +67,19 @@ onMounted(load)
 </script>
 
 <template>
-  <NCard :title="t('audit.title')">
-    <template #header-extra>
-      <NButton @click="verifyChain">{{ t('audit.verify') }}</NButton>
-      <NButton style="margin-left:8px" @click="load">{{ t('common.refresh') }}</NButton>
-    </template>
-    <NDataTable :columns="columns" :data="logs" :loading="loading" :bordered="false" />
-  </NCard>
+  <NSpace vertical :size="16">
+    <PageHeader :title="t('audit.title')" :description="t('audit.subtitle')">
+      <template #extra>
+        <NSpace>
+          <NButton @click="verifyChain">{{ t('audit.verify') }}</NButton>
+          <NButton @click="load">{{ t('common.refresh') }}</NButton>
+        </NSpace>
+      </template>
+    </PageHeader>
+
+    <NCard class="page-card" :bordered="false">
+      <NDataTable :columns="columns" :data="logs" :loading="loading" :bordered="false" />
+      <EmptyState v-if="!loading && logs.length === 0" :message="t('audit.empty')" />
+    </NCard>
+  </NSpace>
 </template>

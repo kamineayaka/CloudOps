@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   NButton,
@@ -10,11 +10,15 @@ import {
   NInput,
   NInputNumber,
   NModal,
+  NPopconfirm,
   NSelect,
   NSpace,
+  NTag,
   useMessage,
 } from 'naive-ui'
 import { createAsset, deleteAsset, listAssets, saveSshCredential, type Asset } from '@/api/assets'
+import EmptyState from '@/components/EmptyState.vue'
+import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
 const message = useMessage()
@@ -28,32 +32,48 @@ const selectedAssetId = ref<number | null>(null)
 const form = ref({ name: '', kind: 'SERVER', host: '', port: 22 })
 const credForm = ref({ username: 'root', authType: 'PASSWORD', secret: '' })
 
-const kindOptions = [
-  { label: 'SERVER', value: 'SERVER' },
-  { label: 'CLUSTER', value: 'CLUSTER' },
-  { label: 'SERVICE', value: 'SERVICE' },
-]
+const kindOptions = computed(() => [
+  { label: t('assets.kindServer'), value: 'SERVER' },
+  { label: t('assets.kindCluster'), value: 'CLUSTER' },
+  { label: t('assets.kindService'), value: 'SERVICE' },
+])
 
-const columns = [
-  { title: 'ID', key: 'id', width: 60 },
+const columns = computed(() => [
+  { title: t('common.id'), key: 'id', width: 60 },
   { title: t('assets.name'), key: 'name' },
-  { title: t('assets.kind'), key: 'kind', render: (row: Asset) => row.kind },
+  { title: t('assets.kind'), key: 'kind' },
   { title: t('assets.host'), key: 'host' },
   { title: t('assets.port'), key: 'port', width: 80 },
   {
     title: t('assets.credential'),
     key: 'hasSshCredential',
-    render: (row: Asset) => (row.hasSshCredential ? t('common.configured') : t('common.notConfigured')),
+    render: (row: Asset) =>
+      h(
+        NTag,
+        { size: 'small', round: true, type: row.hasSshCredential ? 'success' : 'warning' },
+        { default: () => (row.hasSshCredential ? t('common.configured') : t('common.notConfigured')) },
+      ),
   },
   {
     title: t('common.actions'),
     key: 'actions',
-    render: (row: Asset) => [
-      h(NButton, { size: 'small', onClick: () => openCredential(row.id) }, { default: () => t('assets.credential') }),
-      h(NButton, { size: 'small', type: 'error', style: 'margin-left:8px', onClick: () => handleDelete(row.id) }, { default: () => t('common.delete') }),
-    ],
+    width: 200,
+    render: (row: Asset) =>
+      h(NSpace, { size: 8 }, {
+        default: () => [
+          h(NButton, { size: 'small', onClick: () => openCredential(row.id) }, { default: () => t('assets.credential') }),
+          h(
+            NPopconfirm,
+            { onPositiveClick: () => handleDelete(row.id) },
+            {
+              trigger: () => h(NButton, { size: 'small', type: 'error' }, { default: () => t('common.delete') }),
+              default: () => t('common.confirmDelete'),
+            },
+          ),
+        ],
+      }),
   },
-]
+])
 
 async function load() {
   loading.value = true
@@ -70,6 +90,7 @@ async function handleCreate() {
   if (res.success) {
     message.success(t('assets.created'))
     showCreate.value = false
+    form.value = { name: '', kind: 'SERVER', host: '', port: 22 }
     await load()
   }
 }
@@ -101,34 +122,62 @@ onMounted(load)
 </script>
 
 <template>
-  <NCard :title="t('assets.title')">
-    <template #header-extra>
-      <NSpace>
-        <NButton @click="load">{{ t('common.refresh') }}</NButton>
-        <NButton type="primary" @click="showCreate = true">{{ t('assets.addAsset') }}</NButton>
-      </NSpace>
-    </template>
-    <NDataTable :columns="columns" :data="assets" :loading="loading" :bordered="false" />
-  </NCard>
+  <NSpace vertical :size="16">
+    <PageHeader :title="t('assets.title')" :description="t('assets.subtitle')">
+      <template #extra>
+        <NSpace>
+          <NButton @click="load">{{ t('common.refresh') }}</NButton>
+          <NButton type="primary" @click="showCreate = true">{{ t('assets.addAsset') }}</NButton>
+        </NSpace>
+      </template>
+    </PageHeader>
 
-  <NModal v-model:show="showCreate" preset="card" :title="t('assets.addAsset')" style="width: 480px">
-    <NForm :model="form">
+    <NCard class="page-card" :bordered="false">
+      <NDataTable :columns="columns" :data="assets" :loading="loading" :bordered="false" />
+      <EmptyState v-if="!loading && assets.length === 0" :message="t('assets.empty')" />
+    </NCard>
+  </NSpace>
+
+  <NModal v-model:show="showCreate" preset="card" class="modal-md" :title="t('assets.addAsset')">
+    <NForm :model="form" label-placement="top">
       <NFormItem :label="t('assets.name')"><NInput v-model:value="form.name" /></NFormItem>
       <NFormItem :label="t('assets.kind')"><NSelect v-model:value="form.kind" :options="kindOptions" /></NFormItem>
-      <NFormItem :label="t('assets.host')"><NInput v-model:value="form.host" placeholder="192.168.1.10" /></NFormItem>
-      <NFormItem :label="t('assets.port')"><NInputNumber v-model:value="form.port" :min="1" :max="65535" /></NFormItem>
-      <NButton type="primary" @click="handleCreate">{{ t('common.create') }}</NButton>
+      <NFormItem :label="t('assets.host')">
+        <NInput v-model:value="form.host" :placeholder="t('assets.hostPlaceholder')" />
+      </NFormItem>
+      <NFormItem :label="t('assets.port')"><NInputNumber v-model:value="form.port" :min="1" :max="65535" class="full-width" /></NFormItem>
+      <NSpace justify="end">
+        <NButton @click="showCreate = false">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" @click="handleCreate">{{ t('common.create') }}</NButton>
+      </NSpace>
     </NForm>
   </NModal>
 
-  <NModal v-model:show="showCredential" preset="card" :title="t('assets.credential')" style="width: 480px">
-    <NForm :model="credForm">
-      <NFormItem :label="t('assets.sshUser')"><NInput v-model:value="credForm.username" /></NFormItem>
+  <NModal v-model:show="showCredential" preset="card" class="modal-md" :title="t('assets.credential')">
+    <NForm :model="credForm" label-placement="top">
+      <NFormItem :label="t('assets.sshUser')"><NInput v-model:value="credForm.username" spellcheck="false" /></NFormItem>
       <NFormItem :label="t('assets.authType')">
-        <NSelect v-model:value="credForm.authType" :options="[{ label: t('assets.password'), value: 'PASSWORD' }, { label: t('assets.privateKey'), value: 'PRIVATE_KEY' }]" />
+        <NSelect
+          v-model:value="credForm.authType"
+          :options="[
+            { label: t('assets.password'), value: 'PASSWORD' },
+            { label: t('assets.privateKey'), value: 'PRIVATE_KEY' },
+          ]"
+        />
       </NFormItem>
-      <NFormItem :label="t('assets.sshSecret')"><NInput v-model:value="credForm.secret" type="password" show-password-on="click" /></NFormItem>
-      <NButton type="primary" @click="handleSaveCredential">{{ t('common.save') }}</NButton>
+      <NFormItem :label="t('assets.sshSecret')">
+        <NInput v-model:value="credForm.secret" type="password" show-password-on="click" />
+      </NFormItem>
+      <NSpace justify="end">
+        <NButton @click="showCredential = false">{{ t('common.cancel') }}</NButton>
+        <NButton type="primary" @click="handleSaveCredential">{{ t('common.save') }}</NButton>
+      </NSpace>
     </NForm>
   </NModal>
 </template>
+
+<style scoped>
+.full-width {
+  width: 100%;
+}
+</style>

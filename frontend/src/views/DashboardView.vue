@@ -1,51 +1,119 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { NCard, NDescriptions, NDescriptionsItem, NGrid, NGridItem, NSpace, NStatistic, NTag } from 'naive-ui'
+import {
+  ChatbubbleEllipsesOutline,
+  DesktopOutline,
+  DocumentTextOutline,
+  ServerOutline,
+  ShieldCheckmarkOutline,
+} from '@vicons/ionicons5'
+import { NCard, NDescriptions, NDescriptionsItem, NGrid, NGridItem, NIcon, NSpace, NTag } from 'naive-ui'
+import PageHeader from '@/components/PageHeader.vue'
 import { useAuthStore } from '@/stores/auth'
+import { formatRole } from '@/utils/format'
 
 const { t } = useI18n()
+const router = useRouter()
 const authStore = useAuthStore()
 const user = computed(() => authStore.user)
+
+const modules = computed(() => [
+  { key: 'assets', label: t('dashboard.modules.assets'), icon: ServerOutline, route: 'assets' },
+  { key: 'ai', label: t('dashboard.modules.ai'), icon: ChatbubbleEllipsesOutline, route: 'ai' },
+  { key: 'terminal', label: t('dashboard.modules.terminal'), icon: DesktopOutline, route: 'terminal' },
+  { key: 'approvals', label: t('dashboard.modules.approvals'), icon: ShieldCheckmarkOutline, route: 'approvals' },
+  { key: 'audit', label: t('dashboard.modules.audit'), icon: DocumentTextOutline, route: 'audit' },
+])
+
+function goTo(name: string) {
+  router.push({ name })
+}
 </script>
 
 <template>
-  <NSpace vertical size="large">
-    <NCard :title="t('dashboard.title')">
-      <p>{{ t('dashboard.description') }}</p>
-    </NCard>
+  <NSpace vertical :size="24">
+    <PageHeader :title="t('dashboard.title')" :description="t('dashboard.description')" />
 
-    <NGrid :cols="2" :x-gap="16" :y-gap="16" responsive="screen">
+    <NGrid cols="1 s:2" :x-gap="16" :y-gap="16" responsive="screen">
       <NGridItem>
-        <NCard :title="t('dashboard.profile')">
-          <NDescriptions v-if="user" :column="1" bordered>
+        <NCard class="page-card" :title="t('dashboard.profile')" :bordered="false">
+          <NDescriptions v-if="user" :column="1" label-placement="left">
             <NDescriptionsItem :label="t('common.username')">{{ user.username }}</NDescriptionsItem>
             <NDescriptionsItem :label="t('dashboard.rbacTier')">
-              <NTag type="info">{{ user.rbacTier }}</NTag>
+              <NTag type="info" size="small" round>{{ user.rbacTier }}</NTag>
             </NDescriptionsItem>
             <NDescriptionsItem :label="t('dashboard.approvalPolicy')">
-              <NTag type="warning">{{ user.approvalPolicy }}</NTag>
+              <NTag type="warning" size="small" round>{{ user.approvalPolicy }}</NTag>
             </NDescriptionsItem>
             <NDescriptionsItem :label="t('dashboard.roles')">
-              <NSpace>
-                <NTag v-for="role in user.roles" :key="role" type="success">{{ role }}</NTag>
+              <NSpace :size="8">
+                <NTag v-for="role in user.roles" :key="role" type="success" size="small" round>
+                  {{ formatRole(role) }}
+                </NTag>
               </NSpace>
             </NDescriptionsItem>
           </NDescriptions>
         </NCard>
       </NGridItem>
+
       <NGridItem>
-        <NCard :title="t('dashboard.modulesTitle')">
-          <NSpace>
-            <NStatistic :label="t('dashboard.modules.assets')" value="✓" />
-            <NStatistic :label="t('dashboard.modules.ai')" value="✓" />
-            <NStatistic :label="t('dashboard.modules.terminal')" value="✓" />
-            <NStatistic :label="t('dashboard.modules.approvals')" value="✓" />
-            <NStatistic :label="t('dashboard.modules.audit')" value="✓" />
-            <NStatistic :label="t('dashboard.modules.knowledge')" value="✓" />
-          </NSpace>
+        <NCard class="page-card" :title="t('dashboard.quickActions')" :bordered="false">
+          <NGrid cols="2" :x-gap="12" :y-gap="12">
+            <NGridItem v-for="mod in modules" :key="mod.key">
+              <button type="button" class="module-card" @click="goTo(mod.route)">
+                <NIcon :component="mod.icon" :size="22" class="module-card__icon" />
+                <span class="module-card__label">{{ mod.label }}</span>
+                <span class="module-card__action">{{ t('dashboard.goTo') }} →</span>
+              </button>
+            </NGridItem>
+          </NGrid>
         </NCard>
       </NGridItem>
     </NGrid>
   </NSpace>
 </template>
+
+<style scoped>
+.module-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--co-space-2);
+  width: 100%;
+  padding: var(--co-space-4);
+  border: 1px solid var(--co-border);
+  border-radius: var(--co-radius);
+  background: var(--co-bg-page);
+  color: var(--co-text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.module-card:hover {
+  border-color: var(--co-primary);
+  box-shadow: var(--co-shadow);
+  transform: translateY(-1px);
+}
+
+.module-card:focus-visible {
+  outline: 2px solid var(--co-primary);
+  outline-offset: 2px;
+}
+
+.module-card__icon {
+  color: var(--co-primary);
+}
+
+.module-card__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.module-card__action {
+  font-size: 0.75rem;
+  color: var(--co-text-muted);
+}
+</style>
