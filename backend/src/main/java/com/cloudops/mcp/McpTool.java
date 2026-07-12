@@ -27,10 +27,15 @@ public interface McpTool {
             Long userId,
             String username,
             Long conversationId,
-            List<Long> targetAssetIds) {
+            List<Long> targetAssetIds,
+            Long providerId) {
 
         public ExecutionContext(Long userId, String username) {
-            this(userId, username, null, List.of());
+            this(userId, username, null, List.of(), null);
+        }
+
+        public ExecutionContext(Long userId, String username, Long conversationId, List<Long> targetAssetIds) {
+            this(userId, username, conversationId, targetAssetIds, null);
         }
     }
 }

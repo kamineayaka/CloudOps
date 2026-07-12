@@ -15,6 +15,7 @@ import com.cloudops.user.domain.User;
 import com.cloudops.user.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -69,12 +70,21 @@ public class ToolExecutorService {
 
         if (!decision.autoExecute()) {
             if (approvalId == null) {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("tool", toolCall.name());
+                payload.put("arguments", toolCall.arguments());
+                if (toolContext.conversationId() != null) {
+                    payload.put("conversationId", toolContext.conversationId());
+                }
+                if (toolContext.providerId() != null) {
+                    payload.put("providerId", toolContext.providerId());
+                }
                 Approval pending = approvalService.createPending(
                         userId,
                         "tool:" + toolCall.name(),
                         toolCall.name(),
                         risk,
-                        Map.of("tool", toolCall.name(), "arguments", toolCall.arguments()));
+                        payload);
                 return ToolExecutionResult.pendingApproval(pending.getId(), risk, toolCall);
             }
             Approval approval = approvalService.getRequired(approvalId);
@@ -90,7 +100,8 @@ public class ToolExecutorService {
                     userId,
                     user.getUsername(),
                     toolContext.conversationId(),
-                    toolContext.targetAssetIds());
+                    toolContext.targetAssetIds(),
+                    toolContext.providerId());
             String output = tool.execute(args, context);
             auditService.record(new AuditService.AuditEntry(
                     userId,

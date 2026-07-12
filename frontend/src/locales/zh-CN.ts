@@ -112,6 +112,9 @@ export default {
     roleAssistant: '助手',
     sending: '正在思考…',
     sendHint: 'Ctrl + Enter 发送',
+    approvalRequired: '等待人工审批',
+    approvalResume: '审批通过后 Agent 将自动继续',
+    toolRunning: '执行中',
   },
   aiSettings: {
     subtitle: '配置 AI 提供商、默认模型与 RAG 检索参数',

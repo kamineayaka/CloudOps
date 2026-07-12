@@ -1,5 +1,7 @@
 package com.cloudops.approval.controller;
 
+import com.cloudops.ai.service.AiAgentService;
+import com.cloudops.ai.ws.AiStreamSessionRegistry;
 import com.cloudops.approval.dto.ApprovalDecisionRequest;
 import com.cloudops.approval.dto.ApprovalResponse;
 import com.cloudops.approval.service.ApprovalService;
@@ -7,6 +9,8 @@ import com.cloudops.common.dto.ApiResponse;
 import com.cloudops.common.security.AuthUserPrincipal;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,10 +24,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/approvals")
 public class ApprovalController {
 
-    private final ApprovalService approvalService;
+    private static final Logger log = LoggerFactory.getLogger(ApprovalController.class);
 
-    public ApprovalController(ApprovalService approvalService) {
+    private final ApprovalService approvalService;
+    private final AiAgentService aiAgentService;
+    private final AiStreamSessionRegistry aiStreamSessionRegistry;
+
+    public ApprovalController(
+            ApprovalService approvalService,
+            AiAgentService aiAgentService,
+            AiStreamSessionRegistry aiStreamSessionRegistry) {
         this.approvalService = approvalService;
+        this.aiAgentService = aiAgentService;
+        this.aiStreamSessionRegistry = aiStreamSessionRegistry;
     }
 
     @GetMapping("/pending")
@@ -43,6 +56,15 @@ public class ApprovalController {
             @PathVariable Long id,
             @Valid @RequestBody ApprovalDecisionRequest request,
             @AuthenticationPrincipal AuthUserPrincipal principal) {
-        return ApiResponse.ok(approvalService.decide(id, principal.getUserId(), request.decision(), request.reason()));
+        ApprovalResponse response = approvalService.decide(id, principal.getUserId(), request.decision(), request.reason());
+        if ("APPROVE".equalsIgnoreCase(request.decision())) {
+            try {
+                aiAgentService.resumeAfterApproval(id, event ->
+                        aiStreamSessionRegistry.sendToUser(response.requesterId(), event));
+            } catch (Exception ex) {
+                log.warn("Agent resume after approval {} failed: {}", id, ex.getMessage());
+            }
+        }
+        return ApiResponse.ok(response);
     }
 }

@@ -17,7 +17,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 /**
  * Streaming AI chat over WebSocket.
  * Client sends: {"type":"chat","conversationId":1,"message":"check disk usage"}
- * Server emits events: token, tool_start, tool_result, approval_required, done
+ * Server emits events: token, tool_start, tool_result, approval_required, resume_start, done
  */
 @Component
 @WebSocketEndpoint("/ws/ai")
@@ -27,15 +27,34 @@ public class AiStreamWebSocketHandler extends TextWebSocketHandler {
 
     private final AiAgentService aiAgentService;
     private final ConversationService conversationService;
+    private final AiStreamSessionRegistry sessionRegistry;
     private final ObjectMapper objectMapper;
 
     public AiStreamWebSocketHandler(
             AiAgentService aiAgentService,
             ConversationService conversationService,
+            AiStreamSessionRegistry sessionRegistry,
             ObjectMapper objectMapper) {
         this.aiAgentService = aiAgentService;
         this.conversationService = conversationService;
+        this.sessionRegistry = sessionRegistry;
         this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public void afterConnectionEstablished(WebSocketSession session) {
+        Long userId = (Long) session.getAttributes().get("userId");
+        if (userId != null) {
+            sessionRegistry.register(userId, session);
+        }
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        Long userId = (Long) session.getAttributes().get("userId");
+        if (userId != null) {
+            sessionRegistry.unregister(userId, session);
+        }
     }
 
     @Override

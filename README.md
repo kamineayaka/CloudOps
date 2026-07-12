@@ -15,8 +15,9 @@ Designed for deployment on any Linux server — from a single VPS to a productio
 |---|---|
 | **User & RBAC** | JWT auth, role-based access (ADMIN / OPERATOR / VIEWER), single-session kick-out |
 | **Asset Management** | Server/cluster/service inventory, AES-256-GCM encrypted SSH credentials |
-| **Web SSH Terminal** | Browser-based terminal via xterm.js + Apache MINA SSHD |
-| **AI Agent** | ReAct tool-calling loop with DB-driven multi-provider (OpenAI-compatible / Anthropic) |
+| **SSH Connection Pool** | Server-side pooled SSH sessions per user/asset; warm API; reused by terminal and `ssh_exec` |
+| **Web SSH Terminal** | Browser terminal (xterm.js + MINA SSHD) over pooled connections, PTY resize |
+| **AI Agent** | ReAct tool-calling loop; pin target assets per conversation so `ssh_exec` needs no repeated `assetId` |
 | **MCP Tool Gateway** | Extensible tool registry (`ssh_exec`, `list_assets`, ...) |
 | **Approval Workflow** | RBAC-tiered risk classification (LOW / MEDIUM / HIGH) with human gate |
 | **Knowledge Base** | Architecture snapshot + work logs + pgvector RAG semantic retrieval |
@@ -57,6 +58,15 @@ Open **http://your-server-ip** and log in with:
 **Change the default password immediately after first login.**
 
 After the first deploy, run `POST /api/knowledge/reindex` as admin to initialize the RAG vector index.
+
+### SSH pool & AI targets
+
+1. Register assets and save SSH credentials under **Assets**.
+2. In **AI Ops**, select **Target assets** for the conversation (connections are warmed automatically).
+3. Ask naturally (e.g. “check disk usage”) — the agent runs `ssh_exec` against pinned targets without you specifying `assetId` each time.
+4. **Web Terminal** reuses the same pool; optional warm: `POST /api/ssh/pool/{assetId}/warm`.
+
+See [docs/ssh-connection-pool-design.md](docs/ssh-connection-pool-design.md) for pool semantics and API details.
 
 ## Development
 

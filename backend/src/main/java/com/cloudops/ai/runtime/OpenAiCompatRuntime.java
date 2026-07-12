@@ -12,7 +12,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class OpenAiCompatRuntime implements LlmRuntime {
@@ -55,7 +57,9 @@ public class OpenAiCompatRuntime implements LlmRuntime {
     }
 
     @Override
-    public void streamComplete(List<ChatMessage> messages, List<ToolDefinition> tools, Consumer<String> onToken) {
+    public CompletionResult streamComplete(List<ChatMessage> messages, List<ToolDefinition> tools, Consumer<String> onToken) {
+        StringBuilder content = new StringBuilder();
+        Map<Integer, ToolCallBuilder> toolBuilders = new LinkedHashMap<>();
         try {
             String body = buildRequestBody(messages, tools, true);
             httpClient.send(
@@ -68,19 +72,62 @@ public class OpenAiCompatRuntime implements LlmRuntime {
                     HttpResponse.BodyHandlers.ofLines())
                     .body()
                     .forEach(line -> {
-                        if (line.startsWith("data: ") && !line.equals("data: [DONE]")) {
-                            try {
-                                JsonNode delta = objectMapper.readTree(line.substring(6))
-                                        .path("choices").path(0).path("delta").path("content");
-                                if (!delta.isMissingNode() && !delta.isNull()) {
-                                    onToken.accept(delta.asText());
-                                }
-                            } catch (Exception ignored) {
+                        if (!line.startsWith("data: ") || line.equals("data: [DONE]")) {
+                            return;
+                        }
+                        try {
+                            JsonNode delta = objectMapper.readTree(line.substring(6))
+                                    .path("choices").path(0).path("delta");
+                            String token = delta.path("content").asText("");
+                            if (!token.isBlank()) {
+                                content.append(token);
+                                onToken.accept(token);
                             }
+                            JsonNode toolCalls = delta.path("tool_calls");
+                            if (toolCalls.isArray()) {
+                                for (JsonNode tc : toolCalls) {
+                                    int index = tc.path("index").asInt(0);
+                                    ToolCallBuilder builder = toolBuilders.computeIfAbsent(index, ToolCallBuilder::new);
+                                    if (tc.hasNonNull("id")) {
+                                        builder.id = tc.path("id").asText();
+                                    }
+                                    JsonNode fn = tc.path("function");
+                                    if (fn.hasNonNull("name")) {
+                                        builder.name = fn.path("name").asText();
+                                    }
+                                    if (fn.hasNonNull("arguments")) {
+                                        builder.arguments.append(fn.path("arguments").asText(""));
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {
                         }
                     });
+            List<ToolCall> toolCalls = toolBuilders.values().stream()
+                    .filter(builder -> builder.name != null && !builder.name.isBlank())
+                    .map(ToolCallBuilder::build)
+                    .toList();
+            return new CompletionResult(content.toString(), toolCalls);
         } catch (Exception ex) {
-            onToken.accept("[stream failed] " + ex.getMessage());
+            String err = "[stream failed] " + ex.getMessage();
+            onToken.accept(err);
+            return new CompletionResult(err, List.of());
+        }
+    }
+
+    private static final class ToolCallBuilder {
+        private final int index;
+        private String id;
+        private String name;
+        private final StringBuilder arguments = new StringBuilder();
+
+        private ToolCallBuilder(int index) {
+            this.index = index;
+        }
+
+        private ToolCall build() {
+            String callId = id != null && !id.isBlank() ? id : "stream-call-" + index;
+            return new ToolCall(callId, name, arguments.toString());
         }
     }
 

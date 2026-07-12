@@ -15,8 +15,9 @@
 |---|---|
 | **用户与 RBAC** | JWT 认证、角色权限（ADMIN / OPERATOR / VIEWER）、单会话挤下 |
 | **资产管理** | 服务器 / 集群 / 服务清单，SSH 凭证 AES-256-GCM 加密存储 |
-| **Web SSH 终端** | 浏览器内终端（xterm.js + Apache MINA SSHD） |
-| **AI Agent** | ReAct 工具调用循环，数据库驱动的多 Provider（OpenAI 兼容 / Anthropic） |
+| **SSH 连接池** | 服务端按用户/资产复用 SSH 会话，支持预热 API，终端与 `ssh_exec` 共用 |
+| **Web SSH 终端** | 浏览器内终端（xterm.js + MINA SSHD），基于连接池，支持 PTY 缩放 |
+| **AI Agent** | ReAct 工具调用循环；对话可固定目标资产，`ssh_exec` 无需每次传 `assetId` |
 | **MCP 工具网关** | 可扩展工具注册中心（`ssh_exec`、`list_assets` 等） |
 | **审批工作流** | 按 RBAC 分级风险识别（LOW / MEDIUM / HIGH）与人工门控 |
 | **知识库** | 架构快照 + 工作日志 + pgvector RAG 语义检索 |
@@ -58,6 +59,15 @@ docker compose -f deploy/compose/compose.observability.yaml up -d
 **首次登录后请立即修改默认密码。**
 
 首次部署后，建议以管理员身份调用 `POST /api/knowledge/reindex` 初始化 RAG 向量索引。
+
+### SSH 连接池与 AI 目标资产
+
+1. 在 **资产管理** 中录入资产并保存 SSH 凭证。
+2. 在 **AI 运维** 页为当前对话选择 **目标资产**（保存后会自动预热连接池）。
+3. 直接用自然语言提问（如「检查磁盘使用情况」），Agent 会对已选资产执行 `ssh_exec`，无需每次指定 `assetId`。
+4. **Web 终端** 复用同一连接池；也可调用 `POST /api/ssh/pool/{assetId}/warm` 手动预热。
+
+详见 [docs/ssh-connection-pool-design.md](docs/ssh-connection-pool-design.md)。
 
 ## 本地开发
 
