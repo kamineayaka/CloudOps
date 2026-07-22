@@ -44,7 +44,7 @@ asset / ssh（连接基础设施）
 | 阶段 | 主题 | 任务数 | 完成 |
 |------|------|--------|------|
 | A0 | 诚实化：虚构概念落地或删除 | 5 | 0 |
-| A1 | 包边界与命名重构 | 6 | 0 |
+| A1 | 包边界与命名重构 | 6 | 1 |
 | A2 | 打破循环依赖 | 5 | 0 |
 | A3 | 有状态控制面与扩展路径 | 5 | 0 |
 | A4 | 文档、契约与架构守卫 | 4 | 0 |
@@ -120,7 +120,7 @@ asset / ssh（连接基础设施）
 
 > 大搬迁允许；保持对外 HTTP/WS 路径兼容，除非任务明确要求 breaking change。
 
-### [ ] ARCH-A1-01 — 将 `mcp` 重命名为 `tools`（或 `agent.tools`）
+### [x] ARCH-A1-01 — 将 `mcp` 重命名为 `tools`（或 `agent.tools`）
 
 | 字段 | 内容 |
 |------|------|
@@ -389,3 +389,5 @@ flowchart TD
 | 日期 | 说明 |
 |------|------|
 | 2026-07-22 | 初版：架构评审结论完整 TODO（A0–A4），不考虑工程量上限 |
+| 2026-07-22 | ARCH-A1-01：`com.cloudops.mcp` → `com.cloudops.tools`，`McpTool` → `AgentTool` |
+| 2026-07-22 | ARCH-A1-01：`com.cloudops.mcp` → `com.cloudops.tools`，`McpTool` → `AgentTool` |
