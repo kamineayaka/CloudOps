@@ -1,5 +1,9 @@
 # Architecture
 
+> Product north star: [product-vision.md](product-vision.md).  
+> Mainline delivery plan: [mainline-implementation-plan.md](mainline-implementation-plan.md).  
+> This document describes the current engineering shape.
+
 ## Overview
 
 ArchOps AI Platform is a **B/S control plane** for managing Linux server fleets with AI-assisted operations.
