@@ -1,4 +1,4 @@
--- CloudOps AI Platform - Dynamic AI providers and platform settings
+-- ArchOps AI Platform - Dynamic AI providers and platform settings
 
 CREATE TABLE ai_provider (
     id                  BIGSERIAL PRIMARY KEY,

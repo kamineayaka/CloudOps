@@ -24,7 +24,7 @@ sudo usermod -aG docker $USER
 cp deploy/compose/.env.example deploy/compose/.env
 
 # JWT_SECRET and CREDENTIALS_MASTER_KEY are optional — leave empty to auto-generate
-# on first boot and persist to the cloudops_secrets volume.
+# on first boot and persist to the archops_secrets volume.
 
 # Optional: set OPENAI_API_KEY for one-time seed migration to default AI Provider.
 # After deploy, configure providers in the admin UI: Settings → AI Settings.
@@ -70,7 +70,7 @@ docker compose -f deploy/compose/compose.observability.yaml up -d
 cp deploy/helm/values.yaml deploy/helm/values-prod.yaml
 # Set secrets, ingress host, storage class
 
-helm install cloudops deploy/helm -f deploy/helm/values-prod.yaml -n cloudops --create-namespace
+helm install archops deploy/helm -f deploy/helm/values-prod.yaml -n archops --create-namespace
 ```
 
 See [deploy/helm/README.md](../deploy/helm/README.md) for full Helm configuration reference.
@@ -80,7 +80,7 @@ See [deploy/helm/README.md](../deploy/helm/README.md) for full Helm configuratio
 ### PostgreSQL
 
 ```bash
-docker exec cloudops-postgres pg_dump -U cloudops cloudops > backup_$(date +%Y%m%d).sql
+docker exec archops-postgres pg_dump -U archops archops > backup_$(date +%Y%m%d).sql
 ```
 
 ### Redis
@@ -90,12 +90,12 @@ Redis uses AOF persistence (`appendonly yes`). Data is in the `redis_data` Docke
 ### Restore
 
 ```bash
-cat backup_20260101.sql | docker exec -i cloudops-postgres psql -U cloudops cloudops
+cat backup_20260101.sql | docker exec -i archops-postgres psql -U archops archops
 ```
 
 ## Secret rotation (`JWT_SECRET` / `CREDENTIALS_MASTER_KEY`)
 
-Platform secrets resolve in priority order: environment variables → secrets file (`cloudops.secrets.path`, default `./data/secrets.properties` in Compose) → auto-generated on first boot.
+Platform secrets resolve in priority order: environment variables → secrets file (`archops.secrets.path`, default `./data/secrets.properties` in Compose) → auto-generated on first boot.
 
 ### Impact summary
 
@@ -112,7 +112,7 @@ Auto-generated secrets (empty env + empty file) are written once to the secrets 
 2. **Back up PostgreSQL** (see [Backup](#backup)) before rotating `CREDENTIALS_MASTER_KEY`.
 3. **Generate new values** (at least 32 random bytes; base64-encoded is fine), e.g. `openssl rand -base64 32`.
 4. **Update configuration:**
-   - **Compose:** set `JWT_SECRET` and/or `CREDENTIALS_MASTER_KEY` in `deploy/compose/.env`, or edit the persisted file on the `cloudops_secrets` volume (`jwt.secret`, `credentials.master-key`).
+   - **Compose:** set `JWT_SECRET` and/or `CREDENTIALS_MASTER_KEY` in `deploy/compose/.env`, or edit the persisted file on the `archops_secrets` volume (`jwt.secret`, `credentials.master-key`).
    - **Kubernetes:** update the Helm Secret / external secret manager and roll the backend Deployment.
 5. **Restart the backend** (`docker compose up -d` or `kubectl rollout restart`).
 6. **After `CREDENTIALS_MASTER_KEY` rotation:**

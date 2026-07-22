@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:cloudops}
-    username: ${POSTGRES_USER:cloudops}
-    password: ${POSTGRES_PASSWORD:cloudops}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:archops}
+    username: ${POSTGRES_USER:archops}
+    password: ${POSTGRES_PASSWORD:archops}
   data:
     redis:
       host: ${REDIS_HOST:localhost}
@@ -10,5 +10,5 @@ spring:
 
 logging:
   level:
-    com.cloudops: DEBUG
+    com.archops: DEBUG
     org.springframework.security: INFO

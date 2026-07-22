@@ -1,4 +1,4 @@
--- CloudOps AI Platform - Phase 5: scheduled tasks and approval workflow
+-- ArchOps AI Platform - Phase 5: scheduled tasks and approval workflow
 
 CREATE TABLE IF NOT EXISTS tasks (
     id            BIGSERIAL PRIMARY KEY,

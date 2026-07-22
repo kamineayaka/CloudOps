@@ -1,4 +1,4 @@
--- CloudOps AI Platform - Phase 2: assets, SSH credentials, audit log
+-- ArchOps AI Platform - Phase 2: assets, SSH credentials, audit log
 
 CREATE TABLE IF NOT EXISTS assets (
     id          BIGSERIAL PRIMARY KEY,

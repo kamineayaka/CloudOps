@@ -1,0 +1,10 @@
+package com.archops.asset.repository;
+
+import com.archops.asset.domain.Asset;
+import java.util.List;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface AssetRepository extends JpaRepository<Asset, Long> {
+    List<Asset> findByParentId(Long parentId);
+    List<Asset> findByKind(com.archops.asset.domain.AssetKind kind);
+}

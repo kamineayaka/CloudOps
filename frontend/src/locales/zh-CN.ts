@@ -1,13 +1,13 @@
 export default {
   common: {
-    appName: 'CloudOps AI Platform',
+    appName: 'ArchOps AI Platform',
     appTagline: '智能运维控制平面',
     login: '登录',
     logout: '退出登录',
     username: '用户名',
     password: '密码',
     submit: '提交',
-    welcome: '欢迎使用 CloudOps',
+    welcome: '欢迎使用 ArchOps',
     dashboard: '控制台',
     loading: '加载中…',
     sessionKicked: '账号已在其他设备登录，请重新登录',
@@ -51,7 +51,7 @@ export default {
   },
   dashboard: {
     title: '控制台',
-    description: 'CloudOps AI Platform 统一控制平面，管理服务器集群、AI 运维对话、Web SSH 终端与审批工作流。',
+    description: 'ArchOps AI Platform 统一控制平面，管理服务器集群、AI 运维对话、Web SSH 终端与审批工作流。',
     profile: '当前用户',
     rbacTier: '权限等级',
     approvalPolicy: '审批策略',

@@ -1,4 +1,4 @@
-# Contributing to CloudOps AI Platform
+# Contributing to ArchOps AI Platform
 
 Thanks for your interest in contributing! This guide covers the basics.
 
@@ -13,8 +13,8 @@ Requirements:
 ### Clone and bootstrap
 
 ```bash
-git clone https://github.com/kamineayaka/CloudOps.git
-cd CloudOps
+git clone https://github.com/kamineayaka/ArchOps.git
+cd ArchOps
 
 # Start dependencies (PostgreSQL + Redis + MinIO)
 docker compose -f deploy/compose/compose.yaml up -d postgres redis minio
@@ -34,7 +34,7 @@ Open http://localhost:5173 and log in with `admin` / `admin123`.
 ## Project Layout
 
 ```
-backend/   Spring Boot 3 (Java 21), modular packages under com.cloudops.*
+backend/   Spring Boot 3 (Java 21), modular packages under com.archops.*
 frontend/  Vue 3 + Naive UI + TypeScript
 deploy/    compose/ (Docker Compose) and helm/ (Kubernetes Helm Chart)
 docker/    Shared Dockerfile and infrastructure config
