@@ -2,7 +2,7 @@ import { createI18n } from 'vue-i18n'
 import zhCN from '@/locales/zh-CN'
 import enUS from '@/locales/en-US'
 
-const LOCALE_STORAGE_KEY = 'cloudops.locale'
+const LOCALE_STORAGE_KEY = 'archops.locale'
 
 const savedLocale = typeof localStorage !== 'undefined' ? localStorage.getItem(LOCALE_STORAGE_KEY) : null
 

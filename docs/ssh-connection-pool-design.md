@@ -1,6 +1,6 @@
 # SSH Connection Pool
 
-Server-side SSH connection pool for CloudOps, inspired by OpsKat `internal/sshpool/pool.go`.
+Server-side SSH connection pool for ArchOps, inspired by OpsKat `internal/sshpool/pool.go`.
 
 ## Architecture
 
@@ -32,7 +32,7 @@ SshClient (singleton)
 ## Configuration
 
 ```yaml
-cloudops:
+archops:
   ssh-pool:
     idle-timeout: 5m
     connect-timeout: 15s

@@ -1,8 +1,8 @@
-# CloudOps 优化任务清单（Agent 执行版）
+# ArchOps 优化任务清单（Agent 执行版）
 
 > 基于 2026-07-12 全项目评审产出。  
 > 配套 Prompt：`docs/agent-optimization-prompt.md`  
-> 仓库：https://github.com/kamineayaka/CloudOps  
+> 仓库：https://github.com/kamineayaka/ArchOps  
 > **架构重构（包边界/依赖/状态模型）见独立清单：** [`docs/architecture-refactor-todo.md`](architecture-refactor-todo.md)（`ARCH-*`）。与本文件重叠时（如 `user_assets`、权限模型），以 ARCH-A0 决策为准。
 
 **使用方式：**
@@ -61,7 +61,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | `application.yml` 含默认 JWT secret；生产误部署风险高 |
-| **涉及文件** | `backend/src/main/java/com/cloudops/common/bootstrap/SecretBootstrapConfig.java` 或新建 `ProductionSecretValidator.java`；`application-compose.yml`、`application-k8s.yml` |
+| **涉及文件** | `backend/src/main/java/com/archops/common/bootstrap/SecretBootstrapConfig.java` 或新建 `ProductionSecretValidator.java`；`application-compose.yml`、`application-k8s.yml` |
 | **实现要点** | 在 `compose` / `k8s` profile 启动时：若 JWT secret 或 credentials master key 为已知弱默认值或为空且无法从 env/文件加载，则 `fail-fast` 并打印明确错误；dev profile 保持现状 |
 | **完成标准** | compose profile 无有效密钥时启动失败；设置 env 后正常启动；单测覆盖校验逻辑 |
 | **测试** | 新增单元测试：弱密钥 → 异常；合法密钥 → 通过 |
@@ -74,7 +74,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | `/actuator/prometheus` 在 `SecurityConfig` 为 `permitAll`，Nginx 也代理 `/actuator/` |
-| **涉及文件** | `backend/src/main/java/com/cloudops/common/config/SecurityConfig.java`；`frontend/nginx.conf`；`docs/deployment.md` |
+| **涉及文件** | `backend/src/main/java/com/archops/common/config/SecurityConfig.java`；`frontend/nginx.conf`；`docs/deployment.md` |
 | **实现要点** | 方案 A（推荐）：Spring Security 对 `/actuator/prometheus` 要求 ADMIN 角色或独立 Bearer token；方案 B：Nginx 对 `/actuator/` 仅允许内网 IP。同步更新部署文档 |
 | **完成标准** | 未授权请求无法获取 metrics；健康检查 `/actuator/health/liveness` 仍可用于 Compose healthcheck |
 | **测试** | MockMvc 或集成测试：匿名访问 prometheus → 401/403 |
@@ -87,7 +87,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | JWT 通过 URL `?token=` 传递；握手硬编码 `ROLE_USER`，未加载真实 RBAC |
-| **涉及文件** | `backend/src/main/java/com/cloudops/common/websocket/WebSocketAuthHandshakeInterceptor.java`；`frontend/src/api/aiStream.ts`；`frontend/src/views/TerminalView.vue` |
+| **涉及文件** | `backend/src/main/java/com/archops/common/websocket/WebSocketAuthHandshakeInterceptor.java`；`frontend/src/api/aiStream.ts`；`frontend/src/views/TerminalView.vue` |
 | **实现要点** | 1) 后端：握手时通过 `UserDetailsService` 加载真实角色与权限；2) 前端：优先使用 `Sec-WebSocket-Protocol` 传 token，或新增 `POST /api/auth/ws-ticket` 换取短期 ticket（≤60s）再连接；3) 移除 query string 传 token（可保留短期兼容并打 deprecation 日志） |
 | **完成标准** | VIEWER 无法连接需 OPERATOR 权限的 WS 端点；token 不出现在 URL；现有终端与 AI 流式对话功能正常 |
 | **测试** | 集成测试或手动验证：不同角色连接 `/ws/terminal`、`/ws/ai` |
@@ -100,7 +100,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | `user_assets` 表存在但 Java 层未实现；任意 OPERATOR 可访问所有资产 |
-| **涉及文件** | 新建 `backend/src/main/java/com/cloudops/asset/domain/UserAsset.java`、`UserAssetRepository.java`；修改 `AssetService.java`、`AssetController.java`；可选 admin API 分配资产 |
+| **涉及文件** | 新建 `backend/src/main/java/com/archops/asset/domain/UserAsset.java`、`UserAssetRepository.java`；修改 `AssetService.java`、`AssetController.java`；可选 admin API 分配资产 |
 | **实现要点** | 1) ADMIN 可见全部资产；2) OPERATOR/VIEWER 仅可见 `user_assets` 中分配的资产；3) 未分配时 OPERATOR 行为需明确（建议：ADMIN 分配前不可见，或文档说明默认全可见仅 dev）；4) `list_assets` 内置工具同步过滤 |
 | **完成标准** | 集成测试：用户 A 无法通过 API/内置工具访问未分配资产；ADMIN 可分配 |
 | **测试** | 新增 `AssetAclIntegrationTest` |
@@ -115,7 +115,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | 请求者可审批自己的 HIGH 风险操作 |
-| **涉及文件** | `backend/src/main/java/com/cloudops/approval/service/ApprovalService.java`；`ApprovalController.java` |
+| **涉及文件** | `backend/src/main/java/com/archops/approval/service/ApprovalService.java`；`ApprovalController.java` |
 | **实现要点** | `decide()` 校验 `approverId != requesterId`；HIGH 风险仅 `ROLE_ADMIN` 可批准；返回明确业务错误码 |
 | **完成标准** | 单测 + 集成测试覆盖自批拒绝、跨用户批准 |
 | **依赖** | 无 |
@@ -127,7 +127,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | 无 `AccessDeniedException` 处理器；`handleGeneric` 无日志 |
-| **涉及文件** | `backend/src/main/java/com/cloudops/common/exception/GlobalExceptionHandler.java` |
+| **涉及文件** | `backend/src/main/java/com/archops/common/exception/GlobalExceptionHandler.java` |
 | **实现要点** | 新增 `@ExceptionHandler(AccessDeniedException.class)` 返回 `ApiResponse` 403；`handleGeneric` 记录 `log.error`；JWT filter 解析失败记 warn |
 | **完成标准** | `@PreAuthorize` 失败返回 JSON 信封；500 错误有服务端日志 |
 | **测试** | MockMvc 测试无权限访问 → 403 + 统一格式 |
@@ -140,7 +140,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | `GET /architecture`、`POST /search` 等无 `@PreAuthorize` |
-| **涉及文件** | `backend/src/main/java/com/cloudops/knowledge/controller/KnowledgeController.java` |
+| **涉及文件** | `backend/src/main/java/com/archops/knowledge/controller/KnowledgeController.java` |
 | **实现要点** | 读接口：`ROLE_ADMIN` + `ROLE_OPERATOR`（RAG 搜索）；`ROLE_VIEWER` 只读架构/日志；写/reindex 保持 ADMIN only。与产品约定一致后实施 |
 | **完成标准** | VIEWER 无法 search RAG；各角色 MockMvc 测试通过 |
 | **依赖** | 无 |
@@ -152,7 +152,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | 仅 4 个测试文件，SSH 池/审批/审计链/Agent 无覆盖 |
-| **涉及文件** | `backend/src/test/java/com/cloudops/` 下新建多个测试类 |
+| **涉及文件** | `backend/src/test/java/com/archops/` 下新建多个测试类 |
 | **实现要点** | 至少新增：① `JwtAuthenticationFilterTest` 或 auth 集成测试；② `ApprovalServiceTest`（自批拒绝）；③ `AuditServiceTest`（hash chain）；④ `SshConnectionPoolTest`（acquire/release/evict）。使用 Testcontainers  where needed |
 | **完成标准** | `./mvnw verify` 通过；测试类 ≥ 8 |
 | **依赖** | OPT-P0-02（CI 需跑测试） |
@@ -191,8 +191,8 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | 连接池无 max size；终端每会话 new Thread |
-| **涉及文件** | `backend/src/main/java/com/cloudops/terminal/pool/SshConnectionPool.java`；`SshPoolConfig.java`；`TerminalWebSocketHandler.java`；`application.yml` |
-| **实现要点** | 配置 `cloudops.ssh-pool.max-entries-per-user`；超限 LRU 驱逐；终端 I/O 改用 `ExecutorService`；Micrometer gauge：`ssh.pool.active` |
+| **涉及文件** | `backend/src/main/java/com/archops/terminal/pool/SshConnectionPool.java`；`SshPoolConfig.java`；`TerminalWebSocketHandler.java`；`application.yml` |
+| **实现要点** | 配置 `archops.ssh-pool.max-entries-per-user`；超限 LRU 驱逐；终端 I/O 改用 `ExecutorService`；Micrometer gauge：`ssh.pool.active` |
 | **完成标准** | 超限时不无限增长；指标可在 `/actuator/prometheus` 看到 |
 | **依赖** | OPT-P0-04（metrics 访问策略） |
 
@@ -215,7 +215,7 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | `AssetService.list()` 逐条查凭证 |
-| **涉及文件** | `backend/src/main/java/com/cloudops/asset/service/AssetService.java`；`SshCredentialRepository.java` |
+| **涉及文件** | `backend/src/main/java/com/archops/asset/service/AssetService.java`；`SshCredentialRepository.java` |
 | **实现要点** | 批量 `findByAssetIdIn` 一次查询，内存 map 填充 `hasCred` |
 | **完成标准** | 列表接口单次或固定次数 SQL；可加 `@DataJpaTest` |
 | **依赖** | 无 |
@@ -227,8 +227,8 @@
 | 字段 | 内容 |
 |------|------|
 | **问题** | 每轮加载完整 conversation history |
-| **涉及文件** | `backend/src/main/java/com/cloudops/ai/service/AiAgentService.java`；`AiMessageRepository.java` |
-| **实现要点** | 仅取最近 N 条（配置 `cloudops.ai.max-context-messages`，默认 20）；system prompt + RAG 不受限 |
+| **涉及文件** | `backend/src/main/java/com/archops/ai/service/AiAgentService.java`；`AiMessageRepository.java` |
+| **实现要点** | 仅取最近 N 条（配置 `archops.ai.max-context-messages`，默认 20）；system prompt + RAG 不受限 |
 | **完成标准** | 长对话不 OOM；行为回归测试 |
 | **依赖** | 无 |
 
@@ -347,7 +347,7 @@ flowchart TD
 ## 不在本清单范围
 
 - 审批后 Agent 自动续跑（见 `docs/TODO.md` P1-5）
-- 外部 MCP Server / `mcp-cloudops` 脚手架（见 `docs/TODO.md` P3）
+- 外部 MCP Server / `mcp-archops` 脚手架（见 `docs/TODO.md` P3）
 - Ollama Provider 类型（见 `docs/TODO.md` P4-1）
 - 多租户隔离
 

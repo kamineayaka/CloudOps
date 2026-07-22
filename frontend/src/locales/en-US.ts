@@ -1,13 +1,13 @@
 export default {
   common: {
-    appName: 'CloudOps AI Platform',
+    appName: 'ArchOps AI Platform',
     appTagline: 'Intelligent ops control plane',
     login: 'Sign in',
     logout: 'Sign out',
     username: 'Username',
     password: 'Password',
     submit: 'Submit',
-    welcome: 'Welcome to CloudOps',
+    welcome: 'Welcome to ArchOps',
     dashboard: 'Dashboard',
     loading: 'Loading…',
     sessionKicked: 'Your account signed in elsewhere. Please sign in again.',
@@ -52,7 +52,7 @@ export default {
   dashboard: {
     title: 'Dashboard',
     description:
-      'CloudOps AI Platform control plane for server fleets, AI-assisted operations, Web SSH, and approval workflows.',
+      'ArchOps AI Platform control plane for server fleets, AI-assisted operations, Web SSH, and approval workflows.',
     profile: 'Current user',
     rbacTier: 'RBAC tier',
     approvalPolicy: 'Approval policy',

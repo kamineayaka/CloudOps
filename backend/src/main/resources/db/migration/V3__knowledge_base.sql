@@ -1,4 +1,4 @@
--- CloudOps AI Platform - Phase 4: knowledge base (architecture snapshot, work log, RAG)
+-- ArchOps AI Platform - Phase 4: knowledge base (architecture snapshot, work log, RAG)
 
 CREATE TABLE IF NOT EXISTS architecture_snapshot (
     id         BIGSERIAL PRIMARY KEY,

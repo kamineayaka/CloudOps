@@ -109,17 +109,17 @@ async function connect() {
       connStatus.value = 'connected'
       fitAddon?.fit()
       sendResize()
-      term?.writeln(`\r\n[CloudOps] ${t('terminal.statusConnected')} (${t('terminal.pooled')}).\r\n`)
+      term?.writeln(`\r\n[ArchOps] ${t('terminal.statusConnected')} (${t('terminal.pooled')}).\r\n`)
     }
     ws.onmessage = (e) => term?.write(e.data)
     ws.onclose = () => {
       connStatus.value = 'disconnected'
-      term?.writeln(`\r\n[CloudOps] ${t('terminal.statusDisconnected')}.\r\n`)
+      term?.writeln(`\r\n[ArchOps] ${t('terminal.statusDisconnected')}.\r\n`)
       refreshPool()
     }
     ws.onerror = () => {
       connStatus.value = 'error'
-      term?.writeln(`\r\n[CloudOps] ${t('terminal.statusError')}.\r\n`)
+      term?.writeln(`\r\n[ArchOps] ${t('terminal.statusError')}.\r\n`)
     }
 
     term.onData((data) => {

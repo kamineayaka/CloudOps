@@ -1,0 +1,155 @@
+package com.archops.ai.service;
+
+import com.archops.approval.domain.Approval;
+import com.archops.approval.domain.ApprovalStatus;
+import com.archops.approval.domain.RiskLevel;
+import com.archops.approval.service.ApprovalGate;
+import com.archops.approval.service.ApprovalService;
+import com.archops.approval.service.RiskClassifier;
+import com.archops.ai.llm.LlmProvider.ToolCall;
+import com.archops.audit.service.AuditService;
+import com.archops.common.exception.BusinessException;
+import com.archops.tools.AgentTool;
+import com.archops.tools.ToolRegistry;
+import com.archops.user.domain.User;
+import com.archops.user.repository.UserRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class ToolExecutorService {
+
+    private final ToolRegistry toolRegistry;
+    private final RiskClassifier riskClassifier;
+    private final ApprovalGate approvalGate;
+    private final ApprovalService approvalService;
+    private final UserRepository userRepository;
+    private final AuditService auditService;
+    private final ObjectMapper objectMapper;
+
+    public ToolExecutorService(
+            ToolRegistry toolRegistry,
+            RiskClassifier riskClassifier,
+            ApprovalGate approvalGate,
+            ApprovalService approvalService,
+            UserRepository userRepository,
+            AuditService auditService,
+            ObjectMapper objectMapper) {
+        this.toolRegistry = toolRegistry;
+        this.riskClassifier = riskClassifier;
+        this.approvalGate = approvalGate;
+        this.approvalService = approvalService;
+        this.userRepository = userRepository;
+        this.auditService = auditService;
+        this.objectMapper = objectMapper;
+    }
+
+    @Transactional
+    public ToolExecutionResult execute(ToolCall toolCall, Long userId, Long approvalId) {
+        return execute(toolCall, userId, approvalId, new AgentTool.ExecutionContext(userId, null));
+    }
+
+    @Transactional
+    public ToolExecutionResult execute(
+            ToolCall toolCall,
+            Long userId,
+            Long approvalId,
+            AgentTool.ExecutionContext toolContext) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "用户不存在"));
+        AgentTool tool = toolRegistry.find(toolCall.name())
+                .orElseThrow(() -> new BusinessException(HttpStatus.BAD_REQUEST, "TOOL_NOT_FOUND", "工具不存在: " + toolCall.name()));
+
+        RiskLevel risk = riskClassifier.classify(toolCall.name(), toolCall.arguments());
+        ApprovalGate.Decision decision = approvalGate.decide(user.getRbacTier(), user.getApprovalPolicy(), risk);
+
+        if (!decision.autoExecute()) {
+            if (approvalId == null) {
+                Map<String, Object> payload = new HashMap<>();
+                payload.put("tool", toolCall.name());
+                payload.put("arguments", toolCall.arguments());
+                if (toolContext.conversationId() != null) {
+                    payload.put("conversationId", toolContext.conversationId());
+                }
+                if (toolContext.providerId() != null) {
+                    payload.put("providerId", toolContext.providerId());
+                }
+                Approval pending = approvalService.createPending(
+                        userId,
+                        "tool:" + toolCall.name(),
+                        toolCall.name(),
+                        risk,
+                        payload);
+                return ToolExecutionResult.pendingApproval(pending.getId(), risk, toolCall);
+            }
+            Approval approval = approvalService.getRequired(approvalId);
+            if (approval.getStatus() != ApprovalStatus.APPROVED) {
+                return ToolExecutionResult.rejected("审批未通过，工具未执行");
+            }
+        }
+
+        try {
+            Map<String, Object> args = objectMapper.readValue(
+                    toolCall.arguments(), new TypeReference<Map<String, Object>>() {});
+            AgentTool.ExecutionContext context = new AgentTool.ExecutionContext(
+                    userId,
+                    user.getUsername(),
+                    toolContext.conversationId(),
+                    toolContext.targetAssetIds(),
+                    toolContext.providerId());
+            String output = tool.execute(args, context);
+            auditService.record(new AuditService.AuditEntry(
+                    userId,
+                    user.getUsername(),
+                    "tool.execute",
+                    toolCall.name(),
+                    risk.name(),
+                    "SUCCESS",
+                    toolCall.arguments(),
+                    null,
+                    null));
+            return ToolExecutionResult.success(output);
+        } catch (Exception ex) {
+            auditService.record(new AuditService.AuditEntry(
+                    userId,
+                    user.getUsername(),
+                    "tool.execute",
+                    toolCall.name(),
+                    risk.name(),
+                    "FAILED",
+                    ex.getMessage(),
+                    null,
+                    null));
+            return ToolExecutionResult.failed(ex.getMessage());
+        }
+    }
+
+    public record ToolExecutionResult(
+            String status,
+            String output,
+            Long approvalId,
+            RiskLevel riskLevel,
+            ToolCall toolCall) {
+
+        public static ToolExecutionResult success(String output) {
+            return new ToolExecutionResult("SUCCESS", output, null, null, null);
+        }
+
+        public static ToolExecutionResult failed(String message) {
+            return new ToolExecutionResult("FAILED", message, null, null, null);
+        }
+
+        public static ToolExecutionResult rejected(String message) {
+            return new ToolExecutionResult("REJECTED", message, null, null, null);
+        }
+
+        public static ToolExecutionResult pendingApproval(Long approvalId, RiskLevel risk, ToolCall toolCall) {
+            return new ToolExecutionResult("PENDING_APPROVAL", "等待人工审批", approvalId, risk, toolCall);
+        }
+    }
+}

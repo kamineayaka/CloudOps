@@ -1,9 +1,9 @@
-# CloudOps 架构重构任务清单（Agent 执行版）
+# ArchOps 架构重构任务清单（Agent 执行版）
 
 > 基于 2026-07-22 架构评审结论。  
 > 配套 Prompt：`docs/architecture-refactor-prompt.md`  
 > 相关但不重复：`docs/agent-optimization-todo.md`（安全/质量优化，OPT-*）  
-> 仓库：https://github.com/kamineayaka/CloudOps
+> 仓库：https://github.com/kamineayaka/ArchOps
 
 ## 架构结论（执行前必读）
 
@@ -125,8 +125,8 @@ asset / ssh（连接基础设施）
 | 字段 | 内容 |
 |------|------|
 | **问题** | 名为 MCP，实为进程内工具注册表，无 MCP 协议 |
-| **涉及** | `com.cloudops.mcp.*` → `com.cloudops.tools.*`；类名 `McpTool` → `AgentTool`（或保留接口名但包名改正）；前端/文档所有 “MCP Tool Gateway” 表述改为 “内置工具注册表”；真正的外部 MCP 另见后续可选适配器任务 |
-| **完成标准** | 无 `com.cloudops.mcp` 包；README/architecture 不再暗示已实现 MCP 协议 |
+| **涉及** | `com.archops.mcp.*` → `com.archops.tools.*`；类名 `McpTool` → `AgentTool`（或保留接口名但包名改正）；前端/文档所有 “MCP Tool Gateway” 表述改为 “内置工具注册表”；真正的外部 MCP 另见后续可选适配器任务 |
+| **完成标准** | 无 `com.archops.mcp` 包；README/architecture 不再暗示已实现 MCP 协议 |
 | **测试** | 现有工具执行与 Agent 循环回归 |
 | **依赖** | 无（建议 A2 前完成，降低改环成本） |
 
@@ -137,7 +137,7 @@ asset / ssh（连接基础设施）
 | 字段 | 内容 |
 |------|------|
 | **问题** | `SshConnectionPool` 挂在 `terminal`，却被 AI / tools / warm API 共用 |
-| **目标结构** | `com.cloudops.ssh.pool.*`、`com.cloudops.ssh.dial.*`；`terminal` 仅保留 WebSSH / PTY / WS handler；`SshPoolController` 可迁到 `ssh` 或 `asset` 网关 |
+| **目标结构** | `com.archops.ssh.pool.*`、`com.archops.ssh.dial.*`；`terminal` 仅保留 WebSSH / PTY / WS handler；`SshPoolController` 可迁到 `ssh` 或 `asset` 网关 |
 | **完成标准** | `terminal` 不导出被 ai/tools 依赖的池实现；依赖方向：`terminal → ssh`，`tools → ssh`，`ai → ssh` |
 | **依赖** | 建议在 A1-01 前后进行；更新 `docs/ssh-connection-pool-design.md` |
 
@@ -160,7 +160,7 @@ asset / ssh（连接基础设施）
 |------|------|
 | **问题** | `McpTool` / `ToolRegistry` 依赖 `ai.llm.LlmProvider.ToolDefinition`，tools 向上依赖 ai |
 | **实现要点** | 在 `tools`（或中立 `agent.spi`）定义 `ToolSpec`；`ai.agent` 负责映射为 LLM `ToolDefinition` |
-| **完成标准** | `tools` 包零 import `com.cloudops.ai.*` |
+| **完成标准** | `tools` 包零 import `com.archops.ai.*` |
 | **依赖** | A1-01 |
 
 ---
@@ -170,8 +170,8 @@ asset / ssh（连接基础设施）
 | 字段 | 内容 |
 |------|------|
 | **问题** | `knowledge` 直接依赖 `ai.provider` / `ai.runtime` 做 embedding |
-| **实现要点** | 抽取 `com.cloudops.platform.llm` 或 `com.cloudops.embedding`：仅暴露 `EmbeddingClient` + 设置读取；`ai` 与 `knowledge` 都依赖该层，互不依赖 |
-| **完成标准** | `knowledge` 不再 import `com.cloudops.ai.*` |
+| **实现要点** | 抽取 `com.archops.platform.llm` 或 `com.archops.embedding`：仅暴露 `EmbeddingClient` + 设置读取；`ai` 与 `knowledge` 都依赖该层，互不依赖 |
+| **完成标准** | `knowledge` 不再 import `com.archops.ai.*` |
 | **依赖** | A1-03 建议先做 |
 
 ---
@@ -195,7 +195,7 @@ asset / ssh（连接基础设施）
 |------|------|
 | **问题** | `ApprovalController` / approval 侧反向依赖 ai，形成 `ai ↔ approval` |
 | **实现要点** | 审批通过后发布领域事件（Spring `ApplicationEvent` 或接口 `ApprovalDecisionHandler` 由 `ai.agent` 实现）；approval 模块只负责持久化与决策校验 |
-| **完成标准** | `approval` 包零 import `com.cloudops.ai.*`；审批后续跑仍可用 |
+| **完成标准** | `approval` 包零 import `com.archops.ai.*`；审批后续跑仍可用 |
 | **依赖** | A1-03 有助于落点清晰 |
 
 ---
@@ -389,5 +389,5 @@ flowchart TD
 | 日期 | 说明 |
 |------|------|
 | 2026-07-22 | 初版：架构评审结论完整 TODO（A0–A4），不考虑工程量上限 |
-| 2026-07-22 | ARCH-A1-01：`com.cloudops.mcp` → `com.cloudops.tools`，`McpTool` → `AgentTool` |
-| 2026-07-22 | ARCH-A1-01：`com.cloudops.mcp` → `com.cloudops.tools`，`McpTool` → `AgentTool` |
+| 2026-07-22 | ARCH-A1-01：`com.archops.mcp` → `com.archops.tools`，`McpTool` → `AgentTool` |
+| 2026-07-22 | ARCH-A1-01：`com.archops.mcp` → `com.archops.tools`，`McpTool` → `AgentTool` |

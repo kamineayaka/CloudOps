@@ -2,7 +2,7 @@ import { computed, ref, watch } from 'vue'
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
-const STORAGE_KEY = 'cloudops-theme'
+const STORAGE_KEY = 'archops-theme'
 
 const stored = (localStorage.getItem(STORAGE_KEY) as ThemeMode | null) ?? 'system'
 const mode = ref<ThemeMode>(stored)

@@ -1,11 +1,11 @@
-# CloudOps AI Platform
+# ArchOps AI Platform
 
 [English](README.md) | 中文文档
 
-[![CI](https://github.com/kamineayaka/CloudOps/actions/workflows/ci.yml/badge.svg)](https://github.com/kamineayaka/CloudOps/actions/workflows/ci.yml)
+[![CI](https://github.com/kamineayaka/ArchOps/actions/workflows/ci.yml/badge.svg)](https://github.com/kamineayaka/ArchOps/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**CloudOps AI Platform** 是一套面向 Linux 服务器集群的云原生智能运维控制平面，采用 B/S 架构。它提供统一的 Web 管理界面，集成 AI 辅助运维、Web SSH 终端、进程内工具注册表、知识库 RAG、分级审批工作流，以及可防篡改的审计日志。
+**ArchOps AI Platform** 是一套面向 Linux 服务器集群的云原生智能运维控制平面，采用 B/S 架构。它提供统一的 Web 管理界面，集成 AI 辅助运维、Web SSH 终端、进程内工具注册表、知识库 RAG、分级审批工作流，以及可防篡改的审计日志。
 
 适用于从单台 VPS 到生产级集群的部署场景，方便其他开发者自行搭建与二次开发。
 
@@ -36,8 +36,8 @@
 ### 部署步骤
 
 ```bash
-git clone https://github.com/kamineayaka/CloudOps.git
-cd CloudOps
+git clone https://github.com/kamineayaka/ArchOps.git
+cd ArchOps
 
 # 配置环境（JWT/凭证密钥可留空，首次启动自动生成并持久化）
 cp deploy/compose/.env.example deploy/compose/.env
@@ -85,7 +85,7 @@ cd frontend && npm install && npm run dev
 ## 项目结构
 
 ```
-CloudOps/
+ArchOps/
 ├── backend/           Spring Boot 3（Java 21），模块化包结构
 ├── frontend/          Vue 3 + Naive UI + TypeScript
 ├── deploy/

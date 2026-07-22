@@ -4,7 +4,7 @@
 
 ## Overview
 
-CloudOps AI Platform is a **B/S control plane** for managing Linux server fleets with AI-assisted operations.
+ArchOps AI Platform is a **B/S control plane** for managing Linux server fleets with AI-assisted operations.
 
 ```
 Browser (Vue 3)
@@ -31,7 +31,7 @@ Spring Boot Backend (stateless)
 
 ## Module Boundaries
 
-Each package under `com.cloudops.*` is a self-contained module:
+Each package under `com.archops.*` is a self-contained module:
 
 - Own domain entities, repositories, services, controllers
 - Cross-module calls go through public service interfaces only
@@ -64,7 +64,7 @@ User query
     → Injected into AI system prompt
 ```
 
-Configure via `cloudops.rag.*` in `application.yml` or `RAG_*` environment variables.
+Configure via `archops.rag.*` in `application.yml` or `RAG_*` environment variables.
 Run `POST /api/knowledge/reindex` after first deploy or provider change.
 
 ## Approval Matrix

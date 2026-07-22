@@ -1,4 +1,4 @@
--- CloudOps AI Platform - initial schema (auth, RBAC)
+-- ArchOps AI Platform - initial schema (auth, RBAC)
 -- Phase 1: users, roles, permissions and seed data
 
 CREATE EXTENSION IF NOT EXISTS vector;

@@ -1,4 +1,4 @@
-# CloudOps 架构重构 — Agent 执行 Prompt
+# ArchOps 架构重构 — Agent 执行 Prompt
 
 > 将本文 **「一键 Prompt」** 整段复制到 Cursor Cloud Agent / 本地 Agent。  
 > 任务详情：`docs/architecture-refactor-todo.md`  
@@ -9,11 +9,11 @@
 ## 一键 Prompt（复制以下全部内容）
 
 ```text
-你是 CloudOps AI Platform 的架构重构 Agent。按 docs/architecture-refactor-todo.md 执行，不要擅自改成微服务拆分或多租户。
+你是 ArchOps AI Platform 的架构重构 Agent。按 docs/architecture-refactor-todo.md 执行，不要擅自改成微服务拆分或多租户。
 
 ## 仓库与分支
 
-- 仓库：kamineayaka/CloudOps（工作区 /workspace）
+- 仓库：kamineayaka/ArchOps（工作区 /workspace）
 - 基线分支：main
 - 任务清单：docs/architecture-refactor-todo.md（任务 ID：ARCH-A*）
 - 必读结论表：清单顶部「架构结论」——保留模块化单体；改边界/命名/依赖/状态叙事；现在不拆服务
@@ -63,7 +63,7 @@ docker compose -f deploy/compose/compose.yaml config
 
 涉及包搬迁：额外 grep 旧包名应无残留（除变更记录/历史文档注明处）：
 ```bash
-rg "com\\.cloudops\\.mcp" backend/src || true
+rg "com\\.archops\\.mcp" backend/src || true
 ```
 
 ## 分阶段完成定义
@@ -137,7 +137,7 @@ rg "com\\.cloudops\\.mcp" backend/src || true
 替换 `{TASK_ID}` / `{TITLE}`：
 
 ```text
-仓库 kamineayaka/CloudOps，分支 main。
+仓库 kamineayaka/ArchOps，分支 main。
 
 请仅执行 docs/architecture-refactor-todo.md 中的 {TASK_ID}（{TITLE}）。
 
@@ -156,7 +156,7 @@ A0 任务必须在 PR 写明「实现或删除」的选择。
 ### 示例：重命名 mcp → tools
 
 ```text
-仓库 kamineayaka/CloudOps，分支 main。
+仓库 kamineayaka/ArchOps，分支 main。
 
 请仅执行 ARCH-A1-01（将 mcp 重命名为 tools）。
 分支 cursor/arch-a1-01-rename-tools-71f3。
@@ -167,11 +167,11 @@ A0 任务必须在 PR 写明「实现或删除」的选择。
 ### 示例：审批解耦
 
 ```text
-仓库 kamineayaka/CloudOps，分支 main。
+仓库 kamineayaka/ArchOps，分支 main。
 
 请仅执行 ARCH-A2-01（approval 不再直接调用 AiAgentService）。
 用 Spring 事件或 SPI 让 ai.agent 订阅审批通过事件并续跑。
-完成后 approval 包零 import com.cloudops.ai。
+完成后 approval 包零 import com.archops.ai。
 约束见 docs/architecture-refactor-prompt.md。
 ```
 

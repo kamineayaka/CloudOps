@@ -1,4 +1,4 @@
-# CloudOps 优化任务 — Agent 执行 Prompt
+# ArchOps 优化任务 — Agent 执行 Prompt
 
 > 将本文 **「一键 Prompt」** 整段复制到 Cursor Cloud Agent / 本地 Agent，即可按清单执行优化。  
 > 任务详情：`docs/agent-optimization-todo.md`
@@ -8,11 +8,11 @@
 ## 一键 Prompt（复制以下全部内容）
 
 ```text
-你是 CloudOps AI Platform 的专职开发 Agent。请严格按任务清单执行优化，不要偏离范围。
+你是 ArchOps AI Platform 的专职开发 Agent。请严格按任务清单执行优化，不要偏离范围。
 
 ## 仓库与分支
 
-- 仓库：kamineayaka/CloudOps（工作区路径 /workspace）
+- 仓库：kamineayaka/ArchOps（工作区路径 /workspace）
 - 基线分支：main
 - 任务清单：docs/agent-optimization-todo.md（必读，所有任务 ID 以 OPT-P* 开头）
 - 架构参考：docs/architecture.md、docs/deployment.md、docs/ssh-connection-pool-design.md
@@ -70,7 +70,7 @@ docker compose -f deploy/compose/compose.yaml config
 
 ### 测试要求
 - P0/P1 任务必须附带测试（单元或集成），不允许只改实现不补测试
-- 使用现有 Testcontainers 模式（参考 backend/src/test/java/com/cloudops/ai/provider/AiProviderCrudIntegrationTest.java）
+- 使用现有 Testcontainers 模式（参考 backend/src/test/java/com/archops/ai/provider/AiProviderCrudIntegrationTest.java）
 - 不要 mock 掉被测核心逻辑来让测试通过
 
 ### 文档要求
@@ -96,13 +96,13 @@ docker compose -f deploy/compose/compose.yaml config
 
 | 模块 | 路径 |
 |------|------|
-| 安全配置 | backend/src/main/java/com/cloudops/common/config/SecurityConfig.java |
-| JWT | backend/src/main/java/com/cloudops/common/security/ |
-| 密钥引导 | backend/src/main/java/com/cloudops/common/bootstrap/PlatformSecretStore.java |
-| SSH 池 | backend/src/main/java/com/cloudops/terminal/pool/ |
-| AI Agent | backend/src/main/java/com/cloudops/ai/service/AiAgentService.java |
-| 审批 | backend/src/main/java/com/cloudops/approval/ |
-| 知识库/RAG | backend/src/main/java/com/cloudops/knowledge/ |
+| 安全配置 | backend/src/main/java/com/archops/common/config/SecurityConfig.java |
+| JWT | backend/src/main/java/com/archops/common/security/ |
+| 密钥引导 | backend/src/main/java/com/archops/common/bootstrap/PlatformSecretStore.java |
+| SSH 池 | backend/src/main/java/com/archops/terminal/pool/ |
+| AI Agent | backend/src/main/java/com/archops/ai/service/AiAgentService.java |
+| 审批 | backend/src/main/java/com/archops/approval/ |
+| 知识库/RAG | backend/src/main/java/com/archops/knowledge/ |
 | Flyway | backend/src/main/resources/db/migration/ |
 | 前端 API | frontend/src/api/client.ts |
 | 前端路由守卫 | frontend/src/router/index.ts |
@@ -144,7 +144,7 @@ docker compose -f deploy/compose/compose.yaml config
 当只需执行某一个任务时，复制并替换 `{TASK_ID}` 和 `{TASK_TITLE}`：
 
 ```text
-仓库 kamineayaka/CloudOps，分支 main。
+仓库 kamineayaka/ArchOps，分支 main。
 
 请仅执行 docs/agent-optimization-todo.md 中的任务 {TASK_ID}（{TASK_TITLE}）。
 
@@ -162,7 +162,7 @@ docker compose -f deploy/compose/compose.yaml config
 ### 示例：仅执行 CI 测试
 
 ```text
-仓库 kamineayaka/CloudOps，分支 main。
+仓库 kamineayaka/ArchOps，分支 main。
 
 请仅执行 docs/agent-optimization-todo.md 中的任务 OPT-P0-02（CI 启用后端测试）。
 
@@ -182,7 +182,7 @@ docker compose -f deploy/compose/compose.yaml config
 ### 阶段一：P0 安全（6 项）
 
 ```text
-仓库 kamineayaka/CloudOps。按 docs/agent-optimization-todo.md 完成全部 P0 任务（OPT-P0-01 至 OPT-P0-06）。
+仓库 kamineayaka/ArchOps。按 docs/agent-optimization-todo.md 完成全部 P0 任务（OPT-P0-01 至 OPT-P0-06）。
 
 顺序：P0-01 → P0-02 → P0-03 → P0-04 → P0-05 → P0-06（P0-05 与 P0-06 可拆分为两个 PR）。
 
@@ -196,7 +196,7 @@ docker compose -f deploy/compose/compose.yaml config
 ### 阶段二：P1 质量
 
 ```text
-仓库 kamineayaka/CloudOps。P0 已全部完成。请执行 docs/agent-optimization-todo.md 中全部 P1 任务（OPT-P1-01 至 OPT-P1-06）。
+仓库 kamineayaka/ArchOps。P0 已全部完成。请执行 docs/agent-optimization-todo.md 中全部 P1 任务（OPT-P1-01 至 OPT-P1-06）。
 
 注意依赖：P1-04、P1-06 需要 CI 已启用测试（P0-02）。
 

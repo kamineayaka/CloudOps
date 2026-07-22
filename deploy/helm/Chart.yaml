@@ -1,6 +1,6 @@
 apiVersion: v2
-name: cloudops
-description: CloudOps AI Platform - cloud-native intelligent operations control plane
+name: archops
+description: ArchOps AI Platform - cloud-native intelligent operations control plane
 type: application
 version: 0.1.0
 appVersion: "0.1.0"

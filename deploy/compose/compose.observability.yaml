@@ -1,10 +1,10 @@
-# Observability stack for CloudOps (optional overlay)
+# Observability stack for ArchOps (optional overlay)
 # Usage: docker compose -f deploy/compose/compose.yaml -f deploy/compose/compose.observability.yaml up -d
 
 services:
   prometheus:
     image: prom/prometheus:v2.54.1
-    container_name: cloudops-prometheus
+    container_name: archops-prometheus
     restart: unless-stopped
     volumes:
       - ../../docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
@@ -17,7 +17,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.2.0
-    container_name: cloudops-grafana
+    container_name: archops-grafana
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
@@ -32,7 +32,7 @@ services:
 
   loki:
     image: grafana/loki:3.1.1
-    container_name: cloudops-loki
+    container_name: archops-loki
     restart: unless-stopped
     volumes:
       - ../../docker/loki/loki-config.yml:/etc/loki/local-config.yaml:ro

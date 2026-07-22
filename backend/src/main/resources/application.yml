@@ -1,6 +1,6 @@
 spring:
   application:
-    name: cloudops-backend
+    name: archops-backend
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   jpa:
@@ -44,7 +44,7 @@ management:
     tags:
       application: ${spring.application.name}
 
-cloudops:
+archops:
   jwt:
     secret: ${JWT_SECRET:dev-only-secret-change-in-production-must-be-at-least-256-bits!!}
     access-token-expiration-ms: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:900000}
@@ -54,7 +54,7 @@ cloudops:
   credentials:
     master-key: ${CREDENTIALS_MASTER_KEY:}
   secrets:
-    path: ${CLOUDOPS_SECRETS_PATH:./data/secrets.properties}
+    path: ${ARCHOPS_SECRETS_PATH:./data/secrets.properties}
   ai:
     default-provider: ${AI_DEFAULT_PROVIDER:openai-compat}
     openai-compat:

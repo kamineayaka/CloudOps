@@ -1,4 +1,4 @@
-# Default values for CloudOps Helm chart.
+# Default values for ArchOps Helm chart.
 # Override in values-prod.yaml for production.
 
 global:
@@ -7,7 +7,7 @@ global:
 backend:
   replicaCount: 1
   image:
-    repository: cloudops-backend
+    repository: archops-backend
     tag: "0.1.0"
     pullPolicy: IfNotPresent
   resources:
@@ -24,7 +24,7 @@ backend:
 frontend:
   replicaCount: 1
   image:
-    repository: cloudops-frontend
+    repository: archops-frontend
     tag: "0.1.0"
     pullPolicy: IfNotPresent
 
@@ -42,10 +42,10 @@ minio:
 ingress:
   enabled: true
   className: nginx
-  host: cloudops.example.com
+  host: archops.example.com
   tls:
     enabled: true
-    secretName: cloudops-tls
+    secretName: archops-tls
 
 secrets:
   # Set via --set or external-secrets in production
