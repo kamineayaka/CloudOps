@@ -32,11 +32,22 @@ export async function getMessages(conversationId: number) {
   return data
 }
 
-export async function sendChat(message: string, conversationId?: number, providerId?: number) {
+export async function sendChat(
+  message: string,
+  conversationId?: number,
+  providerId?: number,
+  uiContext?: {
+    route?: string
+    surface?: string
+    selectedAssetId?: number
+    selectedAssetIds?: number[]
+  },
+) {
   const { data } = await client.post<ApiResponse<{ conversationId: number; answer: string }>>('/api/ai/chat', {
     message,
     conversationId,
     providerId,
+    uiContext,
   })
   return data
 }

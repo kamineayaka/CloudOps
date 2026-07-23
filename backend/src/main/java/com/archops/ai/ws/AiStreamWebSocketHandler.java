@@ -1,10 +1,13 @@
 package com.archops.ai.ws;
 
+import com.archops.ai.dto.UiContext;
 import com.archops.ai.service.AiAgentService;
 import com.archops.ai.service.ConversationService;
 import com.archops.common.config.WebSocketEndpoint;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,8 +84,9 @@ public class AiStreamWebSocketHandler extends TextWebSocketHandler {
         }
 
         Long providerId = root.hasNonNull("providerId") ? root.get("providerId").asLong() : null;
+        UiContext uiContext = parseUiContext(root.get("uiContext"));
         Long finalConversationId = conversationId;
-        aiAgentService.chat(userId, finalConversationId, userMessage, providerId, event -> {
+        aiAgentService.chat(userId, finalConversationId, userMessage, providerId, uiContext, event -> {
             try {
                 if (session.isOpen()) {
                     session.sendMessage(new TextMessage(objectMapper.writeValueAsString(event)));
@@ -91,5 +95,33 @@ public class AiStreamWebSocketHandler extends TextWebSocketHandler {
                 log.warn("Failed to send AI stream event", ex);
             }
         });
+    }
+
+    private UiContext parseUiContext(JsonNode node) {
+        if (node == null || node.isNull() || node.isMissingNode()) {
+            return null;
+        }
+        try {
+            String route = textOrNull(node, "route");
+            String surface = textOrNull(node, "surface");
+            Long selectedAssetId = node.hasNonNull("selectedAssetId") ? node.get("selectedAssetId").asLong() : null;
+            List<Long> selectedAssetIds = List.of();
+            if (node.has("selectedAssetIds") && node.get("selectedAssetIds").isArray()) {
+                selectedAssetIds = objectMapper.convertValue(node.get("selectedAssetIds"), new TypeReference<>() {});
+            }
+            return new UiContext(route, surface, selectedAssetId, selectedAssetIds);
+        } catch (Exception ex) {
+            log.debug("Ignoring invalid uiContext: {}", ex.getMessage());
+            return null;
+        }
+    }
+
+    private static String textOrNull(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        if (value == null || value.isNull() || !value.isTextual()) {
+            return null;
+        }
+        String text = value.asText();
+        return text.isBlank() ? null : text;
     }
 }

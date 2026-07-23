@@ -156,7 +156,7 @@
 | **不做什么** | 本任务不实现完整 DB/Kafka GUI |
 | **依赖** | ML-1-01 已完成；可与 ML-1-07 并行 |
 
-### [ ] ML-1-07 — Jump / proxy chain（OpsKat：跳板链）
+### [x] ML-1-07 — Jump / proxy chain（OpsKat：跳板链）
 
 | 字段 | 内容 |
 |------|------|
@@ -337,7 +337,7 @@
 | **实现** | WS 推送 `architecture_proposal_created`；聊天区可展示「待审架构更新」卡片，链到提案详情 |
 | **依赖** | ML-3-02、ML-8-02（可先后端事件） |
 
-### [ ] ML-4-07 — Prompt 槽位组装（OpsKat：PromptBuilder 模式）
+### [x] ML-4-07 — Prompt 槽位组装（OpsKat：PromptBuilder 模式）
 
 | 字段 | 内容 |
 |------|------|
@@ -519,9 +519,9 @@
 | ID | 标题 | 状态 |
 |----|------|------|
 | ML-1-06 | 资产类型 SPI | [x] |
-| ML-1-07 | Jump / proxy chain | [ ] |
+| ML-1-07 | Jump / proxy chain | [x] |
 | ML-3-07 | 执行 Grant + decision_source | [ ] |
-| ML-4-07 | Prompt 槽位组装 | [ ] |
+| ML-4-07 | Prompt 槽位组装 | [x] |
 | ML-8-06 | AI 侧轨工作台壳 | [ ] |
 | ML-8-07 | Provider 首次向导 | [x] |
 

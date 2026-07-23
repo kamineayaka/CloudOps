@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { NAlert, NButton, NCard, NInput, NSelect, NSpace, NSpin, NTag, useMessage } from 'naive-ui'
 import {
@@ -9,7 +10,7 @@ import {
   updateConversationTargets,
   type ChatMessage,
 } from '@/api/ai'
-import { createAiStreamClient, type AiStreamEvent } from '@/api/aiStream'
+import { createAiStreamClient, type AiStreamEvent, type UiContext } from '@/api/aiStream'
 import { listChatProviders, type AiProvider } from '@/api/ai-providers'
 import { listAssets, type Asset } from '@/api/assets'
 import { listAssetGroups, type AssetGroup } from '@/api/assetGroups'
@@ -34,6 +35,17 @@ interface DisplayMessage extends ChatMessage {
 
 const { t } = useI18n()
 const message = useMessage()
+const route = useRoute()
+
+function buildUiContext(): UiContext {
+  const selectedAssetIds = [...targetAssetIds.value]
+  return {
+    route: typeof route.name === 'string' ? route.name : String(route.name ?? ''),
+    surface: 'ai',
+    selectedAssetId: selectedAssetIds[0],
+    selectedAssetIds,
+  }
+}
 
 const conversationId = ref<number | null>(null)
 const input = ref('')
@@ -333,6 +345,7 @@ async function handleSend() {
       userMsg,
       conversationId.value ?? undefined,
       selectedProviderId.value ?? undefined,
+      buildUiContext(),
     )
   } catch {
     message.error(t('ai.requestFailed'))

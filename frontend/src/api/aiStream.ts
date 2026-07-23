@@ -22,10 +22,17 @@ export interface AiStreamEvent {
   proposalId?: number | null
 }
 
+export interface UiContext {
+  route?: string
+  surface?: string
+  selectedAssetId?: number
+  selectedAssetIds?: number[]
+}
+
 export interface AiStreamClient {
   connect(): Promise<void>
   disconnect(): void
-  sendChat(message: string, conversationId?: number, providerId?: number): void
+  sendChat(message: string, conversationId?: number, providerId?: number, uiContext?: UiContext): void
   readonly ready: boolean
 }
 
@@ -72,7 +79,12 @@ export function createAiStreamClient(onEvent: (event: AiStreamEvent) => void): A
     openPromise = null
   }
 
-  function sendChat(message: string, conversationId?: number, providerId?: number) {
+  function sendChat(
+    message: string,
+    conversationId?: number,
+    providerId?: number,
+    uiContext?: UiContext,
+  ) {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       onEvent({ type: 'error', content: 'WebSocket not connected' })
       return
@@ -83,6 +95,7 @@ export function createAiStreamClient(onEvent: (event: AiStreamEvent) => void): A
         message,
         conversationId,
         providerId,
+        uiContext,
       }),
     )
   }
