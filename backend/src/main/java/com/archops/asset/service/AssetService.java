@@ -107,6 +107,7 @@ public class AssetService {
         credential.setAuthType(request.authType());
         credential.setSecretCipher(encrypted.cipher());
         credential.setSecretIv(encrypted.iv());
+        credential.setJumpAssetIds(request.jumpAssetIds() != null ? request.jumpAssetIds() : List.of());
         sshCredentialRepository.save(credential);
         auditService.record(new AuditService.AuditEntry(
                 actorId, actorName, "asset.credential.save", "asset:" + assetId,
@@ -131,7 +132,11 @@ public class AssetService {
     }
 
     private AssetResponse toResponse(Asset asset) {
-        boolean hasCred = sshCredentialRepository.findByAssetId(asset.getId()).isPresent();
+        var credential = sshCredentialRepository.findByAssetId(asset.getId());
+        boolean hasCred = credential.isPresent();
+        List<Long> jumpIds = credential
+                .map(SshCredential::getJumpAssetIds)
+                .orElse(List.of());
         return new AssetResponse(
                 asset.getId(),
                 asset.getName(),
@@ -142,6 +147,7 @@ public class AssetService {
                 asset.getParentId(),
                 asset.isEnabled(),
                 hasCred,
+                jumpIds != null ? jumpIds : List.of(),
                 asset.getCreatedAt(),
                 asset.getUpdatedAt());
     }

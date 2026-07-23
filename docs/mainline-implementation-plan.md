@@ -156,7 +156,7 @@
 | **不做什么** | 本任务不实现完整 DB/Kafka GUI |
 | **依赖** | ML-1-01 已完成；可与 ML-1-07 并行 |
 
-### [x] ML-1-07 — Jump / proxy chain（OpsKat：跳板链）
+### [ ] ML-1-07 — Jump / proxy chain（OpsKat：跳板链）
 
 | 字段 | 内容 |
 |------|------|
@@ -519,7 +519,7 @@
 | ID | 标题 | 状态 |
 |----|------|------|
 | ML-1-06 | 资产类型 SPI | [x] |
-| ML-1-07 | Jump / proxy chain | [x] |
+| ML-1-07 | Jump / proxy chain | [ ] |
 | ML-3-07 | 执行 Grant + decision_source | [ ] |
 | ML-4-07 | Prompt 槽位组装 | [x] |
 | ML-8-06 | AI 侧轨工作台壳 | [ ] |

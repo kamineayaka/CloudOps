@@ -6,12 +6,14 @@ Server-side SSH connection pool for ArchOps, inspired by OpsKat `internal/sshpoo
 
 ```
 SshClient (singleton)
-    └── AssetSshDialer (credential + auth)
+    └── AssetSshDialer (credential + auth + optional jump chain)
             └── SshConnectionPool (key: userId + assetId)
                     ├── SshExecTool (exec channel)
                     ├── TerminalWebSocketHandler (shell channel)
                     └── REST warm/evict API
 ```
+
+Jump / proxy chains are stored on `ssh_credentials.jump_asset_ids` (ordered asset IDs). Empty list = direct dial. Topology is connection config, not Architecture SSOT.
 
 ## Pool semantics
 

@@ -11,6 +11,7 @@ export interface Asset {
   parentId: number | null
   enabled: boolean
   hasSshCredential: boolean
+  jumpAssetIds: number[]
   createdAt: string
   updatedAt: string
 }
@@ -40,7 +41,10 @@ export async function deleteAsset(id: number) {
   return data
 }
 
-export async function saveSshCredential(assetId: number, payload: { username: string; authType: string; secret: string }) {
+export async function saveSshCredential(
+  assetId: number,
+  payload: { username: string; authType: string; secret: string; jumpAssetIds?: number[] },
+) {
   const { data } = await client.post<ApiResponse<null>>(`/api/assets/${assetId}/ssh-credential`, payload)
   return data
 }

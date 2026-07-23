@@ -37,7 +37,12 @@ const form = ref<{ name: string; kind: string; host: string; port: number | null
   host: '',
   port: 22,
 })
-const credForm = ref({ username: 'root', authType: 'PASSWORD', secret: '' })
+const credForm = ref({
+  username: 'root',
+  authType: 'PASSWORD',
+  secret: '',
+  jumpAssetIds: [] as number[],
+})
 
 const kindOptions = computed(() =>
   listAssetTypes().map((def) => ({
@@ -47,6 +52,15 @@ const kindOptions = computed(() =>
 )
 
 const selectedType = computed(() => getAssetType(form.value.kind))
+
+const jumpAssetOptions = computed(() =>
+  assets.value
+    .filter((a) => a.hasSshCredential && a.id !== selectedAssetId.value)
+    .map((a) => ({
+      label: `${a.name} (#${a.id})`,
+      value: a.id,
+    })),
+)
 
 watch(
   () => form.value.kind,
@@ -123,7 +137,14 @@ async function handleCreate() {
 }
 
 function openCredential(assetId: number) {
+  const asset = assets.value.find((a) => a.id === assetId)
   selectedAssetId.value = assetId
+  credForm.value = {
+    username: 'root',
+    authType: 'PASSWORD',
+    secret: '',
+    jumpAssetIds: asset?.jumpAssetIds ? [...asset.jumpAssetIds] : [],
+  }
   showCredential.value = true
 }
 
@@ -197,6 +218,19 @@ onMounted(load)
       <NFormItem :label="t('assets.sshSecret')">
         <NInput v-model:value="credForm.secret" type="password" show-password-on="click" />
       </NFormItem>
+      <NFormItem :label="t('assets.jumpChain')">
+        <NSpace vertical :size="4" class="full-width">
+          <NSelect
+            v-model:value="credForm.jumpAssetIds"
+            :options="jumpAssetOptions"
+            multiple
+            filterable
+            clearable
+            :placeholder="t('assets.jumpChainPlaceholder')"
+          />
+          <span class="field-hint">{{ t('assets.jumpChainHint') }}</span>
+        </NSpace>
+      </NFormItem>
       <NSpace justify="end">
         <NButton @click="showCredential = false">{{ t('common.cancel') }}</NButton>
         <NButton type="primary" @click="handleSaveCredential">{{ t('common.save') }}</NButton>
@@ -208,5 +242,10 @@ onMounted(load)
 <style scoped>
 .full-width {
   width: 100%;
+}
+.field-hint {
+  font-size: 12px;
+  color: var(--n-text-color-3, #999);
+  line-height: 1.4;
 }
 </style>
