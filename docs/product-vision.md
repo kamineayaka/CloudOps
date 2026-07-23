@@ -1,7 +1,7 @@
 # ArchOps 产品愿景与整体思想
 
 > 本文是产品北极星文档：说明 **为什么做、做什么、不做什么**，以及核心难点上的设计立场。  
-> 工程实现细节见 `docs/architecture.md`；任务清单见 `docs/architecture-refactor-todo.md`、`docs/agent-optimization-todo.md`。  
+> 工程实现细节见 `docs/architecture.md`；主线实施计划见 `docs/mainline-implementation-plan.md`；任务清单见 `docs/architecture-refactor-todo.md`、`docs/agent-optimization-todo.md`。  
 > 灵感来源：[opskat/opskat](https://github.com/opskat/opskat)（运维工作台），本项目在此之上强调 **可共享、可演进的组织级运维记忆**。
 
 ---
