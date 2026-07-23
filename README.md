@@ -113,6 +113,7 @@ ArchOps/
 
 Product vision: [docs/product-vision.md](docs/product-vision.md).  
 Mainline plan (living Architecture): [docs/mainline-implementation-plan.md](docs/mainline-implementation-plan.md) — agent prompt: [docs/mainline-implementation-prompt.md](docs/mainline-implementation-prompt.md).  
+Domain / API / acceptance: [mainline-domain-model.md](docs/mainline-domain-model.md) · [mainline-api-contracts.md](docs/mainline-api-contracts.md) · [mainline-acceptance.md](docs/mainline-acceptance.md).  
 Engineering architecture: [docs/architecture.md](docs/architecture.md).
 
 ## Security
