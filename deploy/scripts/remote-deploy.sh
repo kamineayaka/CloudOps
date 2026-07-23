@@ -16,16 +16,19 @@ PREBUILT="${PREBUILT:-0}"
 
 SSH=(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new "$TARGET")
 RSYNC_EXCLUDES=(
-  --exclude '.git'
-  --exclude 'node_modules'
+  --exclude '.git/'
+  --exclude 'node_modules/'
+  --exclude '.cursor/'
   --exclude '*.log'
+  --exclude '.env'
+  --exclude 'deploy/compose/.env'
 )
 if [ "$PREBUILT" != "1" ]; then
-  RSYNC_EXCLUDES+=(--exclude 'frontend/dist' --exclude 'backend/target')
+  RSYNC_EXCLUDES+=(--exclude 'frontend/dist/' --exclude 'backend/target/')
 fi
-RSYNC_EXCLUDES+=(--exclude 'deploy/compose/.env')
 
-RSYNC=(rsync -az --delete "${RSYNC_EXCLUDES[@]}")
+# Prefer OpenSSH keepalive on slow links (e.g. cross-region VPS).
+RSYNC=(rsync -az --delete -e "ssh -o BatchMode=yes -o ServerAliveInterval=15 -o ServerAliveCountMax=120 -o Compression=yes" "${RSYNC_EXCLUDES[@]}")
 
 echo "==> Syncing sources → ${TARGET}:${REMOTE_DIR} (PREBUILT=$PREBUILT)"
 "${RSYNC[@]}" "$ROOT/" "${TARGET}:${REMOTE_DIR}/"

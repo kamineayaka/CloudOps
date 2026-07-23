@@ -78,3 +78,22 @@ curl -fsS http://8.138.118.78/actuator/health
 - Do **not** start `compose.observability.yaml` on this size of host.
 - Keep at least 4 GiB swap; builds and JVM spikes will use it.
 - Prefer loading prebuilt images if Maven/`npm` builds OOM on the VPS.
+- If Docker Hub / mirrors fail (`TLS handshake timeout`), rebuild app images from any already-cached `compose-backend` / `compose-frontend` layers:
+
+```bash
+./deploy/scripts/rebuild-images-from-cache.sh
+docker compose -p archops -f compose.yaml -f compose.images.yaml -f compose.lowmem.yaml --env-file .env up -d
+```
+
+## Current status (aliserver)
+
+Provisioned and verified on `8.138.118.78`:
+
+- SSH key auth for the deploy agent
+- Swap expanded to 4 GiB
+- Stack path: `/opt/archops`
+- Health: `http://8.138.118.78/actuator/health` → `UP`
+- UI: `http://8.138.118.78` and `http://console.skycore.top`
+
+Default login remains `admin` / `admin123` — change it immediately after first login.
+Rotate the root password that was shared out-of-band; prefer key-only SSH.
