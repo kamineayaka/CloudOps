@@ -5,6 +5,8 @@ import { useI18n } from 'vue-i18n'
 import {
   NAvatar,
   NButton,
+  NDrawer,
+  NDrawerContent,
   NIcon,
   NLayout,
   NLayoutContent,
@@ -31,6 +33,9 @@ import {
   ShieldCheckmarkOutline,
   SunnyOutline,
 } from '@vicons/ionicons5'
+import AiAssistantRail from '@/components/AiAssistantRail.vue'
+import AssetNavTree from '@/components/AssetNavTree.vue'
+import { useAiWorkbenchShell } from '@/composables/useAiWorkbenchShell'
 import { useAuthStore } from '@/stores/auth'
 import { useTheme } from '@/composables/useTheme'
 import { setAppLocale } from '@/i18n'
@@ -40,6 +45,19 @@ const router = useRouter()
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
 const { isDark, toggle } = useTheme()
+const {
+  pinned,
+  open,
+  railAllowed,
+  showDesktopRail,
+  showMobileRailDrawer,
+  showDesktopAssetTree,
+  showMobileAssetTreeDrawer,
+  toggleOpen,
+  setOpen,
+  toggleAssetTree,
+  setAssetTreeOpen,
+} = useAiWorkbenchShell()
 
 const localeOptions = computed(() => [
   { label: t('common.localeZh'), value: 'zh-CN' },
@@ -96,6 +114,8 @@ const activeKey = computed(() => {
   return name
 })
 
+const railSiderWidth = computed(() => (open.value ? 360 : 48))
+
 function handleMenu(key: string) {
   router.push({ name: key })
 }
@@ -135,6 +155,36 @@ async function handleLogout() {
             <h2 class="header__page-title">{{ pageTitle }}</h2>
           </div>
           <NSpace align="center" :size="12">
+            <template v-if="railAllowed">
+              <NTooltip :show-arrow="false">
+                <template #trigger>
+                  <NButton
+                    quaternary
+                    :type="showDesktopAssetTree || showMobileAssetTreeDrawer ? 'primary' : 'default'"
+                    :aria-label="t('workbench.toggleAssetTree')"
+                    @click="toggleAssetTree"
+                  >
+                    <template #icon><NIcon :component="FolderOutline" /></template>
+                    <span class="header-action-label">{{ t('workbench.assetTree') }}</span>
+                  </NButton>
+                </template>
+                {{ t('workbench.toggleAssetTree') }}
+              </NTooltip>
+              <NTooltip :show-arrow="false">
+                <template #trigger>
+                  <NButton
+                    quaternary
+                    :type="open || pinned ? 'primary' : 'default'"
+                    :aria-label="t('workbench.toggleAiRail')"
+                    @click="toggleOpen"
+                  >
+                    <template #icon><NIcon :component="ChatbubbleEllipsesOutline" /></template>
+                    <span class="header-action-label">{{ t('workbench.aiRailTitle') }}</span>
+                  </NButton>
+                </template>
+                {{ t('workbench.toggleAiRail') }}
+              </NTooltip>
+            </template>
             <NTooltip :show-arrow="false">
               <template #trigger>
                 <NButton quaternary circle :aria-label="isDark ? t('common.lightMode') : t('common.darkMode')" @click="toggle">
@@ -165,13 +215,77 @@ async function handleLogout() {
           </NSpace>
         </div>
       </NLayoutHeader>
-      <NLayoutContent id="main-content" class="content" tag="main">
-        <div class="page-shell">
-          <RouterView />
-        </div>
-      </NLayoutContent>
+      <NLayout has-sider class="workbench">
+        <NLayoutSider
+          v-if="showDesktopAssetTree"
+          class="asset-tree-sider"
+          bordered
+          :width="248"
+          :native-scrollbar="false"
+        >
+          <AssetNavTree />
+        </NLayoutSider>
+        <NLayout has-sider class="workbench__main">
+          <NLayoutContent id="main-content" class="content" tag="main">
+            <div class="page-shell">
+              <RouterView />
+            </div>
+          </NLayoutContent>
+          <NLayoutSider
+            v-if="showDesktopRail"
+            class="ai-rail-sider"
+            bordered
+            :width="railSiderWidth"
+            :collapsed="!open"
+            :collapsed-width="48"
+            collapse-mode="width"
+            :native-scrollbar="false"
+          >
+            <div v-if="!open" class="ai-rail-collapsed">
+              <NTooltip :show-arrow="false" placement="left">
+                <template #trigger>
+                  <NButton
+                    quaternary
+                    circle
+                    :aria-label="t('workbench.expandRail')"
+                    @click="setOpen(true)"
+                  >
+                    <template #icon><NIcon :component="ChatbubbleEllipsesOutline" /></template>
+                  </NButton>
+                </template>
+                {{ t('workbench.expandRail') }}
+              </NTooltip>
+            </div>
+            <AiAssistantRail v-else mode="sider" />
+          </NLayoutSider>
+        </NLayout>
+      </NLayout>
     </NLayout>
   </NLayout>
+
+  <NDrawer
+    :show="showMobileAssetTreeDrawer"
+    placement="left"
+    :width="300"
+    display-directive="show"
+    @update:show="setAssetTreeOpen"
+  >
+    <NDrawerContent :title="t('workbench.assetTree')" closable>
+      <AssetNavTree />
+    </NDrawerContent>
+  </NDrawer>
+
+  <NDrawer
+    :show="showMobileRailDrawer"
+    placement="right"
+    :width="360"
+    display-directive="show"
+    @update:show="setOpen"
+  >
+    <NDrawerContent :title="t('workbench.aiRailTitle')" closable :native-scrollbar="false" body-content-style="padding: 0; height: 100%;">
+      <AiAssistantRail mode="drawer" />
+    </NDrawerContent>
+  </NDrawer>
 </template>
 
 <style scoped>
@@ -267,10 +381,42 @@ async function handleLogout() {
   width: 112px;
 }
 
+.workbench {
+  min-height: calc(100vh - var(--co-header-height));
+}
+
+.workbench__main {
+  min-height: calc(100vh - var(--co-header-height));
+  flex: 1;
+  min-width: 0;
+}
+
 .content {
   padding: var(--co-space-6);
   min-height: calc(100vh - var(--co-header-height));
   background: var(--co-bg-page);
+}
+
+.asset-tree-sider,
+.ai-rail-sider {
+  background: var(--co-bg-card);
+}
+
+.asset-tree-sider :deep(.n-layout-sider-scroll-container),
+.ai-rail-sider :deep(.n-layout-sider-scroll-container) {
+  height: 100%;
+}
+
+.ai-rail-collapsed {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--co-space-4);
+}
+
+@media (max-width: 900px) {
+  .header-action-label {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {

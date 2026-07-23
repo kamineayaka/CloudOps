@@ -275,7 +275,7 @@
 | **实现** | 监听 `ArchitectureMerged` → 仅该分区 reindex（非全库） |
 | **依赖** | ML-3-03；对接 ML-6 |
 
-### [ ] ML-3-07 — 执行 Grant + decision_source（OpsKat：权限记忆）
+### [x] ML-3-07 — 执行 Grant + decision_source（OpsKat：权限记忆）
 
 | 字段 | 内容 |
 |------|------|
@@ -493,7 +493,7 @@
 | **指标例** | `archops_architecture_proposals_pending`、`merged_total`、`rag_hits_per_chat`、`auto_merge_total`、`rollback_total` |
 | **依赖** | 各后端埋点 |
 
-### [ ] ML-8-06 — 布局：资产树 + 主区 + AI 侧轨（OpsKat：工作台壳）
+### [x] ML-8-06 — 布局：资产树 + 主区 + AI 侧轨（OpsKat：工作台壳）
 
 | 字段 | 内容 |
 |------|------|
@@ -520,9 +520,9 @@
 |----|------|------|
 | ML-1-06 | 资产类型 SPI | [x] |
 | ML-1-07 | Jump / proxy chain | [ ] |
-| ML-3-07 | 执行 Grant + decision_source | [ ] |
+| ML-3-07 | 执行 Grant + decision_source | [x] |
 | ML-4-07 | Prompt 槽位组装 | [x] |
-| ML-8-06 | AI 侧轨工作台壳 | [ ] |
+| ML-8-06 | AI 侧轨工作台壳 | [x] |
 | ML-8-07 | Provider 首次向导 | [x] |
 
 推荐实施顺序：`ML-1-06` →（`ML-1-07` ∥ `ML-8-07`）→ `ML-4-07` → `ML-3-07` → `ML-8-06`。

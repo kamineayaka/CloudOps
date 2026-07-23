@@ -293,6 +293,7 @@ export default {
     rejected: '已拒绝',
     confirmReject: '确定拒绝此审批？',
     empty: '暂无待审批项',
+    rememberForSession: '本会话记住',
   },
   audit: {
     title: '审计日志',
@@ -307,5 +308,19 @@ export default {
     status: '状态',
     time: '时间',
     empty: '暂无审计记录',
+  },
+  workbench: {
+    assetTree: '资产树',
+    assetTreeEmpty: '暂无分组或资产',
+    ungrouped: '未分组',
+    toggleAssetTree: '展开/收起资产树',
+    aiRailTitle: 'AI 助手',
+    aiRailEmpty: '在此提问，可边操作边对话；完整能力见 AI 运维页。',
+    toggleAiRail: '展开/收起 AI 侧轨',
+    pinRail: '钉住侧轨',
+    unpinRail: '取消钉住',
+    closeRail: '关闭侧轨',
+    expandRail: '展开 AI 侧轨',
+    openFullAi: '打开完整 AI 页',
   },
 }

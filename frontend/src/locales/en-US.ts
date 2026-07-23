@@ -298,6 +298,7 @@ export default {
     rejected: 'Rejected',
     confirmReject: 'Reject this approval?',
     empty: 'No pending approvals',
+    rememberForSession: 'Remember for this session',
   },
   audit: {
     title: 'Audit log',
@@ -312,5 +313,19 @@ export default {
     status: 'Status',
     time: 'Time',
     empty: 'No audit records',
+  },
+  workbench: {
+    assetTree: 'Asset tree',
+    assetTreeEmpty: 'No groups or assets yet',
+    ungrouped: 'Ungrouped',
+    toggleAssetTree: 'Toggle asset tree',
+    aiRailTitle: 'AI assistant',
+    aiRailEmpty: 'Ask here while you work. Open the full AI page for all controls.',
+    toggleAiRail: 'Toggle AI side rail',
+    pinRail: 'Pin side rail',
+    unpinRail: 'Unpin side rail',
+    closeRail: 'Close side rail',
+    expandRail: 'Expand AI side rail',
+    openFullAi: 'Open full AI page',
   },
 }
