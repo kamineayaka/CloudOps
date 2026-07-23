@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
   NButton,
@@ -28,6 +29,7 @@ import PageHeader from '@/components/PageHeader.vue'
 
 const { t } = useI18n()
 const message = useMessage()
+const route = useRoute()
 
 const groups = ref<AssetGroup[]>([])
 const assets = ref<Asset[]>([])
@@ -133,7 +135,24 @@ async function handleDelete(id: number) {
   }
 }
 
-onMounted(load)
+onMounted(async () => {
+  await load()
+  const raw = route.query.groupId
+  const groupId = typeof raw === 'string' ? Number(raw) : NaN
+  if (Number.isFinite(groupId) && groupId > 0) {
+    await openMembers(groupId)
+  }
+})
+
+watch(
+  () => route.query.groupId,
+  async (raw) => {
+    const groupId = typeof raw === 'string' ? Number(raw) : NaN
+    if (Number.isFinite(groupId) && groupId > 0) {
+      await openMembers(groupId)
+    }
+  },
+)
 </script>
 
 <template>

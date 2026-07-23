@@ -23,16 +23,19 @@ public class ApprovalService {
     private final ApprovalRepository approvalRepository;
     private final UserRepository userRepository;
     private final AuditService auditService;
+    private final ExecutionGrantService executionGrantService;
     private final ObjectMapper objectMapper;
 
     public ApprovalService(
             ApprovalRepository approvalRepository,
             UserRepository userRepository,
             AuditService auditService,
+            ExecutionGrantService executionGrantService,
             ObjectMapper objectMapper) {
         this.approvalRepository = approvalRepository;
         this.userRepository = userRepository;
         this.auditService = auditService;
+        this.executionGrantService = executionGrantService;
         this.objectMapper = objectMapper;
     }
 
@@ -70,6 +73,16 @@ public class ApprovalService {
 
     @Transactional
     public ApprovalResponse decide(Long approvalId, Long approverId, String decision, String reason) {
+        return decide(approvalId, approverId, decision, reason, false);
+    }
+
+    @Transactional
+    public ApprovalResponse decide(
+            Long approvalId,
+            Long approverId,
+            String decision,
+            String reason,
+            boolean rememberForSession) {
         Approval approval = approvalRepository.findById(approvalId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "APPROVAL_NOT_FOUND", "审批单不存在"));
         if (approval.getStatus() != ApprovalStatus.PENDING) {
@@ -81,6 +94,10 @@ public class ApprovalService {
         approval.setReason(reason);
         approval.setDecidedAt(Instant.now());
         approvalRepository.save(approval);
+
+        if (approved && rememberForSession) {
+            executionGrantService.createFromApproval(approval);
+        }
 
         User approver = userRepository.findById(approverId).orElse(null);
         auditService.record(new AuditService.AuditEntry(

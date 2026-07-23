@@ -1,14 +1,13 @@
 package com.archops.asset.service;
 
 import com.archops.asset.domain.Asset;
-import com.archops.asset.domain.AssetKind;
-import com.archops.asset.domain.SshAuthType;
 import com.archops.asset.domain.SshCredential;
 import com.archops.asset.dto.AssetRequest;
 import com.archops.asset.dto.AssetResponse;
 import com.archops.asset.dto.SshCredentialRequest;
 import com.archops.asset.repository.AssetRepository;
 import com.archops.asset.repository.SshCredentialRepository;
+import com.archops.asset.type.AssetTypeRegistry;
 import com.archops.audit.service.AuditService;
 import com.archops.common.exception.BusinessException;
 import com.archops.common.security.CredentialCipher;
@@ -25,20 +24,24 @@ public class AssetService {
     private final SshCredentialRepository sshCredentialRepository;
     private final CredentialCipher credentialCipher;
     private final AuditService auditService;
+    private final AssetTypeRegistry assetTypeRegistry;
 
     public AssetService(
             AssetRepository assetRepository,
             SshCredentialRepository sshCredentialRepository,
             CredentialCipher credentialCipher,
-            AuditService auditService) {
+            AuditService auditService,
+            AssetTypeRegistry assetTypeRegistry) {
         this.assetRepository = assetRepository;
         this.sshCredentialRepository = sshCredentialRepository;
         this.credentialCipher = credentialCipher;
         this.auditService = auditService;
+        this.assetTypeRegistry = assetTypeRegistry;
     }
 
     @Transactional
     public AssetResponse create(AssetRequest request, Long actorId, String actorName) {
+        assetTypeRegistry.findRequired(request.kind().name()).validateCreate(request);
         Asset asset = new Asset();
         asset.setName(request.name());
         asset.setKind(request.kind());
@@ -66,6 +69,7 @@ public class AssetService {
 
     @Transactional
     public AssetResponse update(Long id, AssetRequest request, Long actorId, String actorName) {
+        assetTypeRegistry.findRequired(request.kind().name()).validateUpdate(request);
         Asset asset = findAssetOrThrow(id);
         asset.setName(request.name());
         asset.setKind(request.kind());
@@ -103,6 +107,7 @@ public class AssetService {
         credential.setAuthType(request.authType());
         credential.setSecretCipher(encrypted.cipher());
         credential.setSecretIv(encrypted.iv());
+        credential.setJumpAssetIds(request.jumpAssetIds() != null ? request.jumpAssetIds() : List.of());
         sshCredentialRepository.save(credential);
         auditService.record(new AuditService.AuditEntry(
                 actorId, actorName, "asset.credential.save", "asset:" + assetId,
@@ -127,7 +132,11 @@ public class AssetService {
     }
 
     private AssetResponse toResponse(Asset asset) {
-        boolean hasCred = sshCredentialRepository.findByAssetId(asset.getId()).isPresent();
+        var credential = sshCredentialRepository.findByAssetId(asset.getId());
+        boolean hasCred = credential.isPresent();
+        List<Long> jumpIds = credential
+                .map(SshCredential::getJumpAssetIds)
+                .orElse(List.of());
         return new AssetResponse(
                 asset.getId(),
                 asset.getName(),
@@ -138,6 +147,7 @@ public class AssetService {
                 asset.getParentId(),
                 asset.isEnabled(),
                 hasCred,
+                jumpIds != null ? jumpIds : List.of(),
                 asset.getCreatedAt(),
                 asset.getUpdatedAt());
     }

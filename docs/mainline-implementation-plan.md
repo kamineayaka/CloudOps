@@ -48,14 +48,14 @@
 | 阶段 | 主题 | 任务数 | 完成 | 产出 |
 |------|------|--------|------|------|
 | ML-0 | 对齐与契约 | 4 | 4 | 愿景落地、API/领域契约、成功指标 |
-| ML-1 | 资产分组与对话目标 | 7 | 5 | Group、目标绑定、工具范围；**+类型 SPI / 跳板（OpsKat）** |
+| ML-1 | 资产分组与对话目标 | 7 | 7 | Group、目标绑定、工具范围；**+类型 SPI / 跳板（OpsKat）** |
 | ML-2 | Architecture SSOT v2 | 6 | 6 | 分区、结构化事实、版本、出处 |
-| ML-3 | Proposal 流水线 | 7 | 6 | 提案→审阅→合并→回滚→审计；**+执行 Grant（OpsKat）** |
-| ML-4 | Agent 写回与 L0/L1/L2 | 7 | 6 | 分类器、提案工具；**+Prompt 槽位（OpsKat）** |
+| ML-3 | Proposal 流水线 | 7 | 7 | 提案→审阅→合并→回滚→审计；**+执行 Grant（OpsKat）** |
+| ML-4 | Agent 写回与 L0/L1/L2 | 7 | 7 | 分类器、提案工具；**+Prompt 槽位（OpsKat）** |
 | ML-5 | Work Log 一等公民 | 4 | 4 | 会话绑定、晋升规则、索引 |
 | ML-6 | RAG 主线化 | 5 | 5 | 范围检索、再索引、反模式消除 |
 | ML-7 | 知识治理与权限 | 4 | 4 | ACL、提案审批角色、越权拒绝 |
-| ML-8 | 前端体验与可观测 | 7 | 5 | 架构视图、提案 UI；**+AI 侧轨 / Provider 向导（OpsKat）** |
+| ML-8 | 前端体验与可观测 | 7 | 7 | 架构视图、提案 UI；**+AI 侧轨 / Provider 向导（OpsKat）** |
 
 > **ML-0…ML-8 核心主线已落地。** 下列带「OpsKat」标注的 `ML-*-06/07` 为第二波增强，任务状态以勾选为准；设计依据见 [`opskat-learning.md`](opskat-learning.md)。
 
@@ -143,7 +143,7 @@
 | **实现** | 约定分区键：`global` / `group:{id}` / `asset:{id}`；文档写入领域模型 |
 | **依赖** | ML-1-01；为 ML-2 铺路 |
 
-### [ ] ML-1-06 — 资产类型 SPI（OpsKat：双注册表）
+### [x] ML-1-06 — 资产类型 SPI（OpsKat：双注册表）
 
 | 字段 | 内容 |
 |------|------|
@@ -156,7 +156,7 @@
 | **不做什么** | 本任务不实现完整 DB/Kafka GUI |
 | **依赖** | ML-1-01 已完成；可与 ML-1-07 并行 |
 
-### [ ] ML-1-07 — Jump / proxy chain（OpsKat：跳板链）
+### [x] ML-1-07 — Jump / proxy chain（OpsKat：跳板链）
 
 | 字段 | 内容 |
 |------|------|
@@ -275,7 +275,7 @@
 | **实现** | 监听 `ArchitectureMerged` → 仅该分区 reindex（非全库） |
 | **依赖** | ML-3-03；对接 ML-6 |
 
-### [ ] ML-3-07 — 执行 Grant + decision_source（OpsKat：权限记忆）
+### [x] ML-3-07 — 执行 Grant + decision_source（OpsKat：权限记忆）
 
 | 字段 | 内容 |
 |------|------|
@@ -337,7 +337,7 @@
 | **实现** | WS 推送 `architecture_proposal_created`；聊天区可展示「待审架构更新」卡片，链到提案详情 |
 | **依赖** | ML-3-02、ML-8-02（可先后端事件） |
 
-### [ ] ML-4-07 — Prompt 槽位组装（OpsKat：PromptBuilder 模式）
+### [x] ML-4-07 — Prompt 槽位组装（OpsKat：PromptBuilder 模式）
 
 | 字段 | 内容 |
 |------|------|
@@ -493,7 +493,7 @@
 | **指标例** | `archops_architecture_proposals_pending`、`merged_total`、`rag_hits_per_chat`、`auto_merge_total`、`rollback_total` |
 | **依赖** | 各后端埋点 |
 
-### [ ] ML-8-06 — 布局：资产树 + 主区 + AI 侧轨（OpsKat：工作台壳）
+### [x] ML-8-06 — 布局：资产树 + 主区 + AI 侧轨（OpsKat：工作台壳）
 
 | 字段 | 内容 |
 |------|------|
@@ -503,7 +503,7 @@
 | **不做什么** | 不移植 Wails Tab 体系；不做 RDP/VNC |
 | **依赖** | ML-1 分组 UI；现有 AiChat；建议与 ML-4-07 uiContext 联动 |
 
-### [ ] ML-8-07 — AI Provider 首次向导 / 测连通（OpsKat：Setup UX）
+### [x] ML-8-07 — AI Provider 首次向导 / 测连通（OpsKat：Setup UX）
 
 | 字段 | 内容 |
 |------|------|
@@ -518,12 +518,12 @@
 
 | ID | 标题 | 状态 |
 |----|------|------|
-| ML-1-06 | 资产类型 SPI | [ ] |
-| ML-1-07 | Jump / proxy chain | [ ] |
-| ML-3-07 | 执行 Grant + decision_source | [ ] |
-| ML-4-07 | Prompt 槽位组装 | [ ] |
-| ML-8-06 | AI 侧轨工作台壳 | [ ] |
-| ML-8-07 | Provider 首次向导 | [ ] |
+| ML-1-06 | 资产类型 SPI | [x] |
+| ML-1-07 | Jump / proxy chain | [x] |
+| ML-3-07 | 执行 Grant + decision_source | [x] |
+| ML-4-07 | Prompt 槽位组装 | [x] |
+| ML-8-06 | AI 侧轨工作台壳 | [x] |
+| ML-8-07 | Provider 首次向导 | [x] |
 
 推荐实施顺序：`ML-1-06` →（`ML-1-07` ∥ `ML-8-07`）→ `ML-4-07` → `ML-3-07` → `ML-8-06`。
 
@@ -588,3 +588,5 @@ flowchart TD
 | 2026-07-23 | ML-1 完成：AssetGroup、对话目标组、工具范围、分区键约定 |
 | 2026-07-23 | ML-2…ML-8：SSOT/Proposal/Agent 写回/WorkLog/RAG/ACL/前端与指标 |
 | 2026-07-23 | OpsKat 第二波：正式纳入 ML-1-06/07、ML-3-07、ML-4-07、ML-8-06/07 |
+| 2026-07-23 | ML-1-06 完成：AssetTypeHandler SPI + 前端 register + DATABASE stub |
+| 2026-07-23 | OpsKat 第二波全部完成：ML-1-06/07、ML-3-07、ML-4-07、ML-8-06/07 |

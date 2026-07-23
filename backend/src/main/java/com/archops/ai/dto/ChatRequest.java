@@ -2,4 +2,8 @@ package com.archops.ai.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public record ChatRequest(@NotBlank String message, Long conversationId, Long providerId) {}
+public record ChatRequest(
+        @NotBlank String message,
+        Long conversationId,
+        Long providerId,
+        UiContext uiContext) {}

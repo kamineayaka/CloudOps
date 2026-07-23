@@ -1,7 +1,9 @@
 package com.archops.ai.service;
 
+import com.archops.ai.context.AgentContextAssembler;
 import com.archops.ai.domain.AiConversation;
 import com.archops.ai.domain.AiMessage;
+import com.archops.ai.dto.UiContext;
 import com.archops.ai.llm.LlmProvider.ChatMessage;
 import com.archops.ai.llm.LlmProvider.CompletionResult;
 import com.archops.ai.llm.LlmProvider.ToolCall;
@@ -12,8 +14,6 @@ import com.archops.ai.repository.AiMessageRepository;
 import com.archops.approval.domain.Approval;
 import com.archops.approval.domain.ApprovalStatus;
 import com.archops.approval.service.ApprovalService;
-import com.archops.asset.dto.AssetResponse;
-import com.archops.asset.service.AssetService;
 import com.archops.common.exception.BusinessException;
 import com.archops.knowledge.architecture.PartitionKeys;
 import com.archops.knowledge.architecture.domain.ArchitectureProposal;
@@ -24,8 +24,6 @@ import com.archops.knowledge.classifier.ChangeClassifier;
 import com.archops.knowledge.classifier.ChangeLevel;
 import com.archops.knowledge.classifier.Classification;
 import com.archops.knowledge.domain.WorkLog;
-import com.archops.knowledge.retrieval.RagScope;
-import com.archops.knowledge.service.KnowledgeContextService;
 import com.archops.knowledge.service.WorkLogWriter;
 import com.archops.tools.AgentTool;
 import com.archops.tools.ToolRegistry;
@@ -53,29 +51,12 @@ public class AiAgentService {
     private static final int MAX_ITERATIONS = 5;
     private static final String PROPOSE_TOOL = "propose_architecture_update";
 
-    private static final String SYSTEM_PROMPT = """
-            You are ArchOps AI, an expert SRE assistant for a cloud-native operations platform.
-            You help operators inspect and manage Linux server clusters, Kubernetes, Docker,
-            and big-data stacks (Spark, Kafka, MinIO, Prometheus, Hadoop/HDFS/Hive).
-
-            Knowledge policy:
-            1. Prefer retrieve known architecture from the context snippet before probing hosts.
-            2. L0 read-only diagnostics (df/free/uptime/ps/ls/…): do NOT write architecture.
-            3. When you discover durable facts (roles like namenode/datanode/hive/spark, topology),
-               you MUST call propose_architecture_update — never claim SSOT was updated directly.
-            4. partitionKey rules: global | group:{id} | asset:{id}. Prefer asset:{id} or group:{id}
-               when discoveries are scoped to conversation targets; use global only for fleet-wide facts.
-
-            Always prefer safe read-only diagnostics first. Respond in the same language the user writes in.
-            """;
-
     private final LlmRuntimeResolver llmRuntimeResolver;
     private final ToolRegistry toolRegistry;
     private final ToolExecutorService toolExecutorService;
     private final ConversationService conversationService;
-    private final KnowledgeContextService knowledgeContextService;
+    private final AgentContextAssembler agentContextAssembler;
     private final AiMessageRepository messageRepository;
-    private final AssetService assetService;
     private final ApprovalService approvalService;
     private final ChangeClassifier changeClassifier;
     private final ToolExecutionEventService toolExecutionEventService;
@@ -88,9 +69,8 @@ public class AiAgentService {
             ToolRegistry toolRegistry,
             ToolExecutorService toolExecutorService,
             ConversationService conversationService,
-            KnowledgeContextService knowledgeContextService,
+            AgentContextAssembler agentContextAssembler,
             AiMessageRepository messageRepository,
-            AssetService assetService,
             ApprovalService approvalService,
             ChangeClassifier changeClassifier,
             ToolExecutionEventService toolExecutionEventService,
@@ -101,9 +81,8 @@ public class AiAgentService {
         this.toolRegistry = toolRegistry;
         this.toolExecutorService = toolExecutorService;
         this.conversationService = conversationService;
-        this.knowledgeContextService = knowledgeContextService;
+        this.agentContextAssembler = agentContextAssembler;
         this.messageRepository = messageRepository;
-        this.assetService = assetService;
         this.approvalService = approvalService;
         this.changeClassifier = changeClassifier;
         this.toolExecutionEventService = toolExecutionEventService;
@@ -113,14 +92,30 @@ public class AiAgentService {
     }
 
     @Transactional
-    public AgentResult chat(Long userId, Long conversationId, String userMessage, Long providerId, Consumer<AgentEvent> onEvent) {
+    public AgentResult chat(
+            Long userId,
+            Long conversationId,
+            String userMessage,
+            Long providerId,
+            Consumer<AgentEvent> onEvent) {
+        return chat(userId, conversationId, userMessage, providerId, null, onEvent);
+    }
+
+    @Transactional
+    public AgentResult chat(
+            Long userId,
+            Long conversationId,
+            String userMessage,
+            Long providerId,
+            UiContext uiContext,
+            Consumer<AgentEvent> onEvent) {
         AiConversation conversation = conversationService.requireOwned(conversationId, userId);
         conversationService.appendMessage(conversationId, "user", userMessage, "[]");
         if (onEvent != null) {
             onEvent.accept(AgentEvent.userMessage(userMessage));
         }
 
-        List<ChatMessage> messages = buildContext(conversation, conversationId, userMessage);
+        List<ChatMessage> messages = buildContext(conversation, conversationId, userMessage, uiContext);
         List<Long> effectiveTargets = conversationService.resolveEffectiveTargetAssetIds(conversation);
         AgentTool.ExecutionContext toolContext = new AgentTool.ExecutionContext(
                 userId, null, conversationId, effectiveTargets, providerId);
@@ -171,7 +166,7 @@ public class AiAgentService {
             throw new BusinessException(HttpStatus.BAD_REQUEST, "LLM_UNAVAILABLE", err);
         }
 
-        List<ChatMessage> messages = buildResumeContext(conversation, conversationId);
+        List<ChatMessage> messages = buildResumeContext(conversation, conversationId, null);
         List<ToolExecutionSummary> toolSummaries = new ArrayList<>();
 
         if (onEvent != null) {
@@ -430,12 +425,10 @@ public class AiAgentService {
         return llm.streamComplete(messages, tools, token -> onEvent.accept(AgentEvent.token(token)));
     }
 
-    private List<ChatMessage> buildContext(AiConversation conversation, Long conversationId, String latestUserMessage) {
+    private List<ChatMessage> buildContext(
+            AiConversation conversation, Long conversationId, String latestUserMessage, UiContext uiContext) {
         List<ChatMessage> messages = new ArrayList<>();
-        RagScope scope = scopeFromConversation(conversation);
-        String knowledge = knowledgeContextService.buildContextSnippet(latestUserMessage, scope);
-        String targets = formatTargetAssets(conversationService.resolveEffectiveTargetAssetIds(conversation));
-        messages.add(ChatMessage.system(SYSTEM_PROMPT + "\n\n" + targets + "\n\n" + knowledge));
+        messages.add(ChatMessage.system(assembleSystemContext(conversation, conversationId, latestUserMessage, uiContext)));
 
         messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId).stream()
                 .filter(m -> !"user".equals(m.getRole()) || !m.getContent().equals(latestUserMessage))
@@ -444,37 +437,29 @@ public class AiAgentService {
         return messages;
     }
 
-    private List<ChatMessage> buildResumeContext(AiConversation conversation, Long conversationId) {
+    private List<ChatMessage> buildResumeContext(
+            AiConversation conversation, Long conversationId, UiContext uiContext) {
         List<ChatMessage> messages = new ArrayList<>();
         String lastUser = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId).stream()
                 .filter(m -> "user".equals(m.getRole()))
                 .map(AiMessage::getContent)
                 .reduce((first, second) -> second)
                 .orElse("");
-        RagScope scope = scopeFromConversation(conversation);
-        String knowledge = knowledgeContextService.buildContextSnippet(lastUser, scope);
-        String targets = formatTargetAssets(conversationService.resolveEffectiveTargetAssetIds(conversation));
-        messages.add(ChatMessage.system(SYSTEM_PROMPT + "\n\n" + targets + "\n\n" + knowledge));
+        messages.add(ChatMessage.system(assembleSystemContext(conversation, conversationId, lastUser, uiContext)));
 
         messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId).stream()
                 .forEach(m -> messages.add(toChatMessage(m)));
         return messages;
     }
 
-    private RagScope scopeFromConversation(AiConversation conversation) {
+    private String assembleSystemContext(
+            AiConversation conversation, Long conversationId, String userQuery, UiContext uiContext) {
         List<Long> assetIds = conversationService.resolveEffectiveTargetAssetIds(conversation);
         List<Long> groupIds = conversation.getTargetGroupIds() != null
                 ? conversation.getTargetGroupIds()
                 : List.of();
-        List<String> partitionKeys = new ArrayList<>();
-        partitionKeys.add(PartitionKeys.GLOBAL);
-        for (Long assetId : assetIds) {
-            partitionKeys.add(PartitionKeys.asset(assetId));
-        }
-        for (Long groupId : groupIds) {
-            partitionKeys.add(PartitionKeys.group(groupId));
-        }
-        return new RagScope(assetIds, groupIds, partitionKeys);
+        return agentContextAssembler.assemble(
+                conversation.getUserId(), assetIds, groupIds, userQuery, conversationId, uiContext);
     }
 
     private List<Long> extractAssetIds(String argumentsJson, AiConversation conversation) {
@@ -520,27 +505,6 @@ public class AiAgentService {
             return number.longValue();
         }
         return null;
-    }
-
-    private String formatTargetAssets(List<Long> targetAssetIds) {
-        if (targetAssetIds == null || targetAssetIds.isEmpty()) {
-            return "Active target assets: none. Ask the user to select target assets before running ssh_exec, "
-                    + "or pass assetId explicitly after listing assets.";
-        }
-        StringBuilder sb = new StringBuilder(
-                "Active target assets. When ssh_exec omits assetId, the command runs on ALL targets sequentially:\n");
-        for (Long assetId : targetAssetIds) {
-            try {
-                AssetResponse asset = assetService.get(assetId);
-                sb.append("- id=").append(asset.id())
-                        .append(" name=").append(asset.name())
-                        .append(" host=").append(asset.host() != null ? asset.host() : "n/a")
-                        .append('\n');
-            } catch (Exception ex) {
-                sb.append("- id=").append(assetId).append(" (unavailable)\n");
-            }
-        }
-        return sb.toString();
     }
 
     private String writeToolSummaries(List<ToolExecutionSummary> summaries) {

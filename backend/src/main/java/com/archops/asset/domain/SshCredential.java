@@ -9,6 +9,10 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "ssh_credentials")
@@ -36,6 +40,11 @@ public class SshCredential {
 
     @Column(name = "passphrase_hash", length = 255)
     private String passphraseHash;
+
+    /** Ordered jump asset IDs (connection topology; not Architecture SSOT). */
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "jump_asset_ids", nullable = false)
+    private List<Long> jumpAssetIds = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -69,6 +78,10 @@ public class SshCredential {
     public void setSecretIv(byte[] secretIv) { this.secretIv = secretIv; }
     public String getPassphraseHash() { return passphraseHash; }
     public void setPassphraseHash(String passphraseHash) { this.passphraseHash = passphraseHash; }
+    public List<Long> getJumpAssetIds() { return jumpAssetIds; }
+    public void setJumpAssetIds(List<Long> jumpAssetIds) {
+        this.jumpAssetIds = jumpAssetIds != null ? jumpAssetIds : new ArrayList<>();
+    }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

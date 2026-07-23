@@ -20,7 +20,16 @@ export async function listPendingApprovals() {
   return data
 }
 
-export async function decideApproval(id: number, decision: 'APPROVE' | 'REJECT', reason?: string) {
-  const { data } = await client.post<ApiResponse<Approval>>(`/api/approvals/${id}/decide`, { decision, reason })
+export async function decideApproval(
+  id: number,
+  decision: 'APPROVE' | 'REJECT',
+  reason?: string,
+  rememberForSession?: boolean,
+) {
+  const { data } = await client.post<ApiResponse<Approval>>(`/api/approvals/${id}/decide`, {
+    decision,
+    reason,
+    rememberForSession: rememberForSession ?? false,
+  })
   return data
 }
