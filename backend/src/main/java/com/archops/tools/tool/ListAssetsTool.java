@@ -3,12 +3,14 @@ package com.archops.tools.tool;
 import com.archops.asset.dto.AssetResponse;
 import com.archops.asset.service.AssetService;
 import com.archops.tools.AgentTool;
+import com.archops.tools.ToolScope;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
-/** Lists all registered assets so the agent can pick a target for other tools. */
+/** Lists managed assets; when conversation targets are set, only those assets are returned. */
 @Component
 public class ListAssetsTool implements AgentTool {
 
@@ -25,7 +27,8 @@ public class ListAssetsTool implements AgentTool {
 
     @Override
     public String description() {
-        return "List all managed assets (servers, clusters, services) with their IDs, names, hosts and kinds.";
+        return "List managed assets (servers, clusters, services) with IDs, names, hosts and kinds. "
+                + "When the conversation has target assets/groups, only those assets are listed.";
     }
 
     @Override
@@ -36,8 +39,12 @@ public class ListAssetsTool implements AgentTool {
     @Override
     public String execute(Map<String, Object> arguments, ExecutionContext context) {
         List<AssetResponse> assets = assetService.list();
+        Set<Long> allowed = ToolScope.allowedSet(context.targetAssetIds());
+        if (!allowed.isEmpty()) {
+            assets = assets.stream().filter(a -> allowed.contains(a.id())).toList();
+        }
         if (assets.isEmpty()) {
-            return "No assets registered.";
+            return allowed.isEmpty() ? "No assets registered." : "No assets in the current conversation target scope.";
         }
         return assets.stream()
                 .map(a -> "- id=" + a.id() + " name=" + a.name() + " kind=" + a.kind()
