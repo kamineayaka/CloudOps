@@ -56,7 +56,9 @@ public class ApprovalController {
             @PathVariable Long id,
             @Valid @RequestBody ApprovalDecisionRequest request,
             @AuthenticationPrincipal AuthUserPrincipal principal) {
-        ApprovalResponse response = approvalService.decide(id, principal.getUserId(), request.decision(), request.reason());
+        boolean remember = Boolean.TRUE.equals(request.rememberForSession());
+        ApprovalResponse response = approvalService.decide(
+                id, principal.getUserId(), request.decision(), request.reason(), remember);
         if ("APPROVE".equalsIgnoreCase(request.decision())) {
             try {
                 aiAgentService.resumeAfterApproval(id, event ->

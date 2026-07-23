@@ -96,3 +96,6 @@ archops:
       require-stdout-hash: true
       require-asset-id: true
     context-max-chars: ${ARCH_CONTEXT_MAX_CHARS:4000}
+  approval:
+    grant-ttl-minutes: ${APPROVAL_GRANT_TTL_MINUTES:60}
+    allow-high-grants: ${APPROVAL_ALLOW_HIGH_GRANTS:false}

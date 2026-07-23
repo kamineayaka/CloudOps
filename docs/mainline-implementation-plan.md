@@ -275,7 +275,7 @@
 | **实现** | 监听 `ArchitectureMerged` → 仅该分区 reindex（非全库） |
 | **依赖** | ML-3-03；对接 ML-6 |
 
-### [x] ML-3-07 — 执行 Grant + decision_source（OpsKat：权限记忆）
+### [ ] ML-3-07 — 执行 Grant + decision_source（OpsKat：权限记忆）
 
 | 字段 | 内容 |
 |------|------|
@@ -520,7 +520,7 @@
 |----|------|------|
 | ML-1-06 | 资产类型 SPI | [x] |
 | ML-1-07 | Jump / proxy chain | [ ] |
-| ML-3-07 | 执行 Grant + decision_source | [x] |
+| ML-3-07 | 执行 Grant + decision_source | [ ] |
 | ML-4-07 | Prompt 槽位组装 | [x] |
 | ML-8-06 | AI 侧轨工作台壳 | [x] |
 | ML-8-07 | Provider 首次向导 | [x] |
