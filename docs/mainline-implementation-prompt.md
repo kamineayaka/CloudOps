@@ -154,12 +154,12 @@ HIGH 默认不可 grant。仅覆盖执行类工具（ssh_exec 等），不影响
 ```text
 必读 docs/workbench-gap-audit.md 全文。
 
-产品隐喻：SSH 终端页 = IDE Window；Agent = Agent Window（类似 Cursor）。
+产品隐喻：操作台 = Web 终端 + 右侧 AI 对话（≈ Cursor IDE）；Agent 窗口 = 左资产树 + 右对话、无终端。侧轨 ≠ Agent 窗口。详见 docs/ux-clarification-todo.md。
 
 请按波次交付（可多 PR）：
 W0：确认 BUG-01/02/03 已在 main（角色 ADMIN、nginx try_files、资产创建错误提示）；补回归。
 W1：对齐 OpsKat「添加 SSH」表单（主机/端口/用户/认证/密码或密钥/分组/描述/测试连接）；创建一次可连。
-W2：终端 IDE 壳 — 左资产树、多 Tab 会话、状态条、一键打开 Agent 侧轨。
+W2：操作台壳 — 左资产树、多 Tab 会话、状态条、一键打开右侧 AI 对话轨。
 
 字段级可对照 / 照搬 OpsKat：AssetForm+SSHConfigSection、AIProviderForm（含 reasoning）。
 不要用 Description 当 Architecture SSOT；不要桌面 socket。
@@ -183,6 +183,21 @@ W2：终端 IDE 壳 — 左资产树、多 Tab 会话、状态条、一键打开
 分支：cursor/w3-ai-provider-parity-71f3（或按子任务拆分）。
 验证：./mvnw verify && npm run build；手工走完向导并成功发一条 AI 消息。
 不要：明文打日志 Key；不要改 Architecture SSOT 语义。
+
+注：W3 交付后交互精修（门控获取模型、选模型回填默认参数）见 docs/ux-clarification-prompt.md UX-AI。
+```
+
+### 阶段 UX — AI 配置流 + 操作台/Agent 窗口
+
+完整 Prompt 见 **`docs/ux-clarification-prompt.md`**。摘要：
+
+```text
+必读 docs/ux-clarification-todo.md + docs/ux-clarification-prompt.md 硬约束。
+
+Agent A（UX-AI）：名称+地址+Key → 获取模型可用 → 列表 → 选模型回填 tokens/context；保留 reasoning 分级。
+Agent B（UX-LAYOUT）：操作台=终端+右 AI；Agent 窗口=左资产+右对话、无终端；纠偏文档与导航。
+
+分支例：cursor/ux-ai-provider-flow-71f3 、 cursor/ux-layout-ops-agent-windows-71f3
 ```
 
 ### 阶段 W4 — 多资产类型（W4-01…W4-08，建议 W4a→W4d）
@@ -191,7 +206,7 @@ W2：终端 IDE 壳 — 左资产树、多 Tab 会话、状态条、一键打开
 仓库 ArchOps，基线 origin/main。
 必读：docs/workbench-gap-audit.md「Wave W4」；docs/opskat-learning.md 资产类型/connect 矩阵。
 
-产品隐喻不变：SSH 仍是 IDE；其他类型用 query/page，Agent 可只读探活。
+产品隐喻：SSH/终端页属操作台；其他类型用 query/page；Agent 窗口无终端、可只读探活。
 
 推荐子波（多 PR）：
 W4a：W4-01 文档+SPI 固化，W4-02 connectAction，W4-03 DATABASE 最小可配+测试连接
@@ -305,3 +320,4 @@ Commit：feat(scope): {TASK_ID} 简短说明
 | 2026-07-22 | 初版：主线一键 Prompt + 单任务/分阶段模板 |
 | 2026-07-23 | 增加 OpsKat 第二波一键 Prompt 与 O1–O4 / O-ALL 阶段模板 |
 | 2026-07-23 | 增加工作台 W3 / W4 分阶段 Prompt（Provider 对齐图 3、多资产类型） |
+| 2026-07-24 | 纠正操作台/Agent 窗口隐喻；增加 UX-AI / UX-LAYOUT 阶段入口（详见 ux-clarification-prompt.md） |
