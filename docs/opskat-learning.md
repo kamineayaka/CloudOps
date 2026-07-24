@@ -94,7 +94,8 @@
 **他们怎么做：** Setup Wizard、拉模型列表、reasoning 开关、密钥加密存储、表单清晰。
 
 **ArchOps 建议：** 我们已有 Provider CRUD；补齐 **向导式首次配置、测连通、模型下拉刷新、失败可读错误**；密钥脱敏与轮换文案对齐部署文档。  
-**2026-07-24：** W3 已字段级对齐 OpsKat（`maxOutputTokens` / `contextWindow` / `reasoningEffort` none→max，运行时生效；Dashboard/AI/侧轨共用向导 API）。见 [`workbench-gap-audit.md`](workbench-gap-audit.md) Wave W3。
+**2026-07-24：** W3 已字段级对齐 OpsKat（`maxOutputTokens` / `contextWindow` / `reasoningEffort` none→max，运行时生效；Dashboard/AI/侧轨共用向导 API）。见 [`workbench-gap-audit.md`](workbench-gap-audit.md) Wave W3。  
+**交互精修（用户权威流程）：** 名称 + API 地址 + API Key →「获取模型」可用 → 选模型自动填默认 tokens/context；**保留** ArchOps 思考深度分级。任务：[`ux-clarification-todo.md`](ux-clarification-todo.md) UX-AI。
 
 ### P2 — 前端信息架构
 
@@ -103,14 +104,17 @@
 - 侧栏资产树 + 主区多 Tab（terminal / ai / query / page）+ **AI 侧栏常驻**（边开终端边问 AI）。
 - 类型驱动 `connectAction`；分屏终端；SFTP。
 
-**ArchOps 建议：**
+**ArchOps 建议（2026-07-24 隐喻纠偏）：**
 
 | 优先 | 说明 |
 |------|------|
-| **AI 侧轨 / 可钉住助手** | 终端页与资产页旁挂 ArchOps Agent，不必只能进独立 AI 路由 |
-| 资产树（组 → 成员） | 服务 ML-1 Hadoop 故事 |
-| 连接动作注册表 | 点资产 → Terminal / 未来 Query |
+| **操作台** | Web 终端 + **右侧 AI 对话**（≈ Cursor IDE）；侧轨属于操作台 |
+| **Agent 窗口** | 左资产树（≈ Workspaces）+ 右对话；**无 Web 终端**；独立入口 |
+| 资产树（组 → 成员） | 服务 ML-1 Hadoop 故事；两窗口共用 |
+| 连接动作注册表 | 点资产 → Terminal / 未来 Query（操作台） |
 | 暂缓 | RDP/VNC/全量 DB GUI（非主线，可列为 P3 工作台能力） |
+
+详见 [`ux-clarification-todo.md`](ux-clarification-todo.md) §2。
 
 ### P3 — 工程纪律（可直接搬）
 
@@ -157,7 +161,9 @@ OpsKat 是优秀的 **「单人运维工作台 + 带策略的 AI 手」**；Arch
 
 **最该偷的三样（原）：** ① 资产/策略双注册；② Allow/Deny/Confirm/Grant/Audit；③ 上下文槽位。  
 
-**2026-07-23 修正（用户三图反馈）：** 另须 **字段级对齐** SSH 创建表单、**布局级对齐** 终端 IDE+Agent 侧栏、**字段级对齐** AI Provider（含 reasoning）。工作台不足会阻断主线触达。详见 [`workbench-gap-audit.md`](workbench-gap-audit.md)。
+**2026-07-23 修正（用户三图反馈）：** 另须 **字段级对齐** SSH 创建表单、**布局级对齐** 终端操作台+AI 侧栏、**字段级对齐** AI Provider（含 reasoning）。工作台不足会阻断主线触达。详见 [`workbench-gap-audit.md`](workbench-gap-audit.md)。
+
+**2026-07-24 再修正：** 「Agent Window ≠ 侧轨」。操作台 = 终端+右 AI；Agent 窗口 = 左资产+右对话、无终端。AI 配置流见 [`ux-clarification-todo.md`](ux-clarification-todo.md)。
 
 **最该自己做、他们没有的：** 分区 Architecture SSOT、Proposal 写回、范围化 RAG、多用户 ACL。
 
@@ -169,3 +175,4 @@ OpsKat 是优秀的 **「单人运维工作台 + 带策略的 AI 手」**；Arch
 |------|------|
 | 2026-07-23 | 初版：基于 opskat 源码阅读的 ArchOps 主线学习结论 |
 | 2026-07-23 | ML-*-06/07 已正式写入 mainline-implementation-plan；指挥入口改为 OpsKat 第二波 Prompt |
+| 2026-07-24 | 操作台/Agent 窗口隐喻纠偏；Provider 交互精修指向 UX-AI |
